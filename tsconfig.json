@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target"              : "ES2017",
+    "rootDir"             : "client_src",
+    "outDir"              : "public/js",
+    "sourceMap"           : true,
+    "extendedDiagnostics" : true
+  }
+}

@@ -1,0 +1,12 @@
+treat mushed string as an actual leaf node token instead of a branch?
+actually type check the additions, comparisons, and assignments lol
+
+for assignments, can check symbol list for types the variable is supposed to be? There arent any variable conversions so it shouldnt need complex nesting. Just check final list
+
+
+actually print out the symbol list
+
+
+Later:
+Have the html format for the code input rework so its actually similar to a text editor
+I want to bold/recolor specific keywords
