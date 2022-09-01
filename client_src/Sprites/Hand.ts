@@ -1,4 +1,4 @@
-const maxHandSize = 5;
+const maxHandSize = 5; // 5 cards per row
 class Hand extends Sprite{
     public draggable:boolean = false;
 
@@ -6,16 +6,16 @@ class Hand extends Sprite{
 
     constructor(config){
         super(config)
-
-        for (let j = 0; j < maxHandSize;j++){
-            let holder = new CardHolder({visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX});
-            holder.row = j;
-            holder.column = 0;
-            
-            holder.y = this.y + 20 +(SETTINGS.ROWBUFFER+SETTINGS.CARDY)*0
-            holder.x = this.x + 20 +(SETTINGS.COLUMNBUFFER+SETTINGS.CARDX)*j
-            
-            this.list.push(holder)
+        for (let i = 0; i < 4;i++){
+            for (let j = 0; j < maxHandSize;j++){
+                let holder = new CardHolder({visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX});
+                holder.row = j;
+                holder.column = 0;
+                
+                holder.y = this.y + 20 +((SETTINGS.ROWBUFFER+SETTINGS.CARDY+10)*i)
+                holder.x = this.x + 20 +(SETTINGS.COLUMNBUFFER+SETTINGS.CARDX)*j
+                this.list.push(holder)
+            }
         }
 
     }
@@ -39,7 +39,11 @@ class Hand extends Sprite{
         //console.log('rendering hand')
 
         // Render the Children
-        ctx.fillStyle = "red";
+        let topper = await this.getImage(SETTINGS.HAND_TOPPER_TEXTURE);
+        let topHeight = this.width*.1
+        ctx.drawImage(topper,this.x,this.y-topHeight,this.width,topHeight)
+
+        ctx.fillStyle = "#FFF7E5";
         ctx.fillRect(this.x, this.y, this.width, this.height)
         
         for (let j = 0; j < this.list.length; j++){

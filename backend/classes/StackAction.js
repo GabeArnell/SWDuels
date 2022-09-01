@@ -18,11 +18,22 @@ module.exports.StackAction = class StackAction{
                 this.row = build.row;
                 this.targetRow = build.targetRow;
                 break;
+            case("EVOCATION"): 
+                this.card = build.card;
+                this.targets = build.targets;
+                break;
             case("EVENT"):
                 this.card = build.card;
                 this.ability = build.ability;
                 this.savedData = build.savedData;
                 break;
+            case("DEATH"):
+                // Death is a triggered event but does not go on stack or actually get resolved
+
+            default:
+                if (build.card){
+                    this.card = build.card
+                }
         }
     }
 
@@ -36,6 +47,9 @@ module.exports.StackAction = class StackAction{
                 break;
             case("ATTACK"):
                 game.attackEntity(this);
+                break;
+            case("EVOCATION"):
+                game.resolveSpell(this)
                 break;
             case("EVENT"):
                 game.resolveEvent(this);
@@ -61,6 +75,12 @@ module.exports.StackAction = class StackAction{
                 res.row = this.row;
                 res.targetRow = this.targetRow;
                 break;
+            case("EVOCATION"):
+                res.card = this.card.data();
+                res.targets = [];
+                for (let target of this.targets){
+                    res.targets.push(target.data())
+                }
             case("EVENT"):
                 if (this.card){
                     res.card = this.card.data();

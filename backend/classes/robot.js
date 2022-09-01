@@ -1,9 +1,10 @@
 
 const {Player} = require("./Player")
+const doNothing = false;
 module.exports.Robot = class Robot extends Player{
 
-    constructor(id,game){
-        super(id,id,game)
+    constructor(id,startingRow,game){
+        super(id,id,startingRow,game)
     }
 
     decideAction(req,res){
@@ -21,7 +22,7 @@ module.exports.Robot = class Robot extends Player{
             case("ACTION"):
                 // pass
                 let summonCard = this.canSummonCard();
-                if (false && summonCard){
+                if (!doNothing && summonCard){
                     this.game.playerAction(req,res,{
                         player: this.id,
                         data: {
@@ -29,7 +30,7 @@ module.exports.Robot = class Robot extends Player{
                             data: {
                                 actiontype: "PLAYCARD",
                                 card: summonCard.id,
-                                row: 0
+                                row: this.game.board.getCard(this.playerCard.id)[1], // plays to the row the robot's current avatar is in
                             }
                         }
                     })
@@ -52,7 +53,7 @@ module.exports.Robot = class Robot extends Player{
 
     canSummonCard(){
         for (let card of this.hand){
-            if (card.data().cost <= this.getDivineConnection(this.game)){
+            if (card.data().cost <= this.getDivineConnection(this.game) && card.data().type == "Entity"){
                 return card;
             }
         }

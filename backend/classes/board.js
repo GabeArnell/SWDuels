@@ -82,7 +82,7 @@ module.exports.Board = class Board {
     }
 
 
-    moveEntity(card,newRow){
+    moveCard(card,newRow){
         function filter(testCard){
             if (testCard.data().id == card.data().id){
                 return false;
@@ -96,5 +96,21 @@ module.exports.Board = class Board {
         }
         // placing it
         this.matrix[newRow].entities.push(card)
+    }
+
+    removeCard(card){
+        let didRemove = false;
+        function filter(testCard){
+            if (testCard.data().id == card.data().id){
+                didRemove = true;
+                return false;
+            }
+            return true;
+        }
+        for (let row of this.matrix){
+            row.entities = row.entities.filter(filter);
+            row.wards = row.wards.filter(filter);
+        }
+        return didRemove;
     }
 }

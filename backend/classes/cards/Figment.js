@@ -7,12 +7,13 @@ module.exports.stats = {
     attack: 2,
     health: 1,
     cost: 1,
-    type: "Entity"
+    type: "Entity",
+    tribes: [],
 }
 
 module.exports.Zone_Card = class Figment_Zone extends Zone_Card{
-    constructor(data={}){
-        super(module.exports.stats,data,module.exports.Board_Card);
+    constructor(data={},Board_Card = null){
+        super(module.exports.stats,data,module.exports.Board_Card,Board_Card);
     }
 }
 module.exports.Board_Card = class Figment_Board extends Board_Card{
@@ -26,10 +27,10 @@ module.exports.Board_Card = class Figment_Board extends Board_Card{
                 trigger: (stackAction,placingOnStack,owner,game)=>{// placing on stack is false if it just resolved
                     if (stackAction.type == "SUMMON" && stackAction.card.id == parentID && placingOnStack == false){
                         // if the event should trigger it returns any stored data it wants to keep, which it will get back on the execute phase. 
-                        console.log(stackAction.type,' !triggers! this event',placingOnStack,stackAction.card.id,parentID )
+                        //console.log(stackAction.type,' !triggers! this event',placingOnStack,stackAction.card.id,parentID )
                         return {stackAction: stackAction, player:owner};
                     }
-                    console.log(stackAction.type,'does not trigger this event',placingOnStack,stackAction.card.id,parentID )
+                    //console.log(stackAction.type,'does not trigger this event',placingOnStack,stackAction.card.id,parentID )
                     return null;
                 },
                 execute:(savedData,game)=>{

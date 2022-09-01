@@ -6,6 +6,7 @@ class StackAction extends Sprite {
         this.stopHovering = false;
         this.card = null;
         this.targetCard = null;
+        this.targets = null;
         this.parent = parent;
         this.data = actionData;
         this.stopHovering = false;
@@ -21,12 +22,24 @@ class StackAction extends Sprite {
             // moving the attacking card down
             this.card.y = this.parent.y + (SETTINGS.CARDY / 2) + SETTINGS.ROWBUFFER;
         }
+        if (actionData.targets) {
+            this.targets = [];
+            for (let target of actionData.targets) {
+                let cardSprite = new CardSprite(target, { visible: true, height: SETTINGS.CARDY, width: SETTINGS.CARDX });
+                let cardsLeft = actionData.targets.length - this.targets.length - 1;
+                cardSprite.y = this.parent.y - (SETTINGS.CARDY / 2) - SETTINGS.ROWBUFFER;
+                cardSprite.x = this.parent.x - 25 - SETTINGS.CARDX - (cardsLeft * (SETTINGS.CARDX + SETTINGS.ROWBUFFER));
+                this.targets.push(cardSprite);
+            }
+            this.card.y = this.parent.y + (SETTINGS.CARDY / 2) + SETTINGS.ROWBUFFER;
+        }
     }
     canHover(mouse) {
         return true;
     }
     endHover(mouse) {
         this.stopHovering = true;
+        this.parent.gameParent.detailOverlay.clearPointers();
         // cut off the board highlight
     }
     async render(ctx, mouse, renderZ) {
@@ -36,6 +49,7 @@ class StackAction extends Sprite {
         ctx.fillStyle = "yellow";
         ctx.fillRect(this.x, this.y, this.width, this.height);
         let texture = null;
+        let infoText = null;
         switch (this.data.type) {
             case ("SUMMON"):
                 ctx.font = "bold 30px Arial";
@@ -67,12 +81,36 @@ class StackAction extends Sprite {
                     // popping up the card
                     if (this.card) {
                         await this.card.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.card.cardData.id);
                     }
                     if (this.targetCard) {
                         await this.targetCard.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.targetCard.cardData.id);
                     }
                     texture = await this.getImage(SETTINGS.FIGHT_TEXTURE);
                     ctx.drawImage(texture, this.parent.x - 25 - SETTINGS.CARDX, this.y - (50), 100, 100);
+                }
+                break;
+            case ("EVOCATION"):
+                ctx.font = "bold 20px Arial";
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                infoText = `Evocation: ${this.data.card.name}`;
+                ctx.fillText(infoText, this.x + this.width / 2, this.y + this.height / 2);
+                ctx.strokeStyle = "black";
+                ctx.strokeText(infoText, this.x + this.width / 2, this.y + this.height / 2);
+                if (this.hovering) {
+                    // popping up the card
+                    if (this.card) {
+                        await this.card.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.card.cardData.id);
+                    }
+                    if (this.targets) {
+                        for (let target of this.targets) {
+                            await target.render(ctx, mouse, renderZ);
+                            this.parent.gameParent.detailOverlay.addPointer(target.cardData.id);
+                        }
+                    }
                 }
                 break;
             case ("MOVEENTITY"):
@@ -88,6 +126,7 @@ class StackAction extends Sprite {
                     // popping up the card
                     if (this.card) {
                         await this.card.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.card.cardData.id);
                     }
                 }
                 else if (this.stopHovering && this.parent.gameParent.myBoard.targetRow == this.data.row) {
@@ -105,9 +144,11 @@ class StackAction extends Sprite {
                     // popping up the card
                     if (this.card) {
                         await this.card.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.card.cardData.id);
                     }
                     if (this.targetCard) {
                         await this.targetCard.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.targetCard.cardData.id);
                     }
                 }
                 break;

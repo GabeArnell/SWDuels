@@ -56,6 +56,7 @@ class Sprite {
     drawRectangle(ctx, box) {
         ctx.lineWidth = box.width;
         ctx.fillStyle = box.color;
+        ctx.strokeStyle = ctx.fillStyle;
         switch (this.position) {
             case (PositionReference.center):
                 if (!box.fill)
@@ -76,6 +77,11 @@ class Sprite {
     }
     canDrag(mouse) {
         return this.draggable;
+    }
+    rightClick(mouse) {
+    }
+    canRightClick(mouse) {
+        return false;
     }
     dragging(mouse) {
     }

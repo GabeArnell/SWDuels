@@ -81,13 +81,21 @@ class Board extends Sprite {
         ctx.fillStyle = "blue";
         ctx.fillRect(this.x, this.y, this.width, this.height);
         let columns = minColumns;
-        if (this.targetRow != null) {
-            ctx.fillStyle = "#7EE9FC";
-            let top = 10 + ((SETTINGS.ROWBUFFER + SETTINGS.CARDY) * (this.targetRow));
-            let bot = (SETTINGS.ROWBUFFER + SETTINGS.CARDY);
-            ctx.fillRect(this.x, top, this.width, bot);
-        }
+        // background texture
+        let textureHeight = 150;
+        let backgroundTexture = await this.getImage("/images/ForestLand.png");
+        let textureLength = textureHeight * 2;
         for (let i = 0; i < this.matrix.length; i++) {
+            let length = this.matrix[i].length;
+            for (let slide = 0; slide < length / 2; slide++) {
+                ctx.drawImage(backgroundTexture, this.x + (textureLength * slide), -20 + ((SETTINGS.ROWBUFFER + SETTINGS.CARDY) * (i)), textureLength, textureHeight);
+            }
+            if (this.targetRow != null && this.targetRow == i) {
+                ctx.fillStyle = "#7EE9FC";
+                let top = 10 + ((SETTINGS.ROWBUFFER + SETTINGS.CARDY) * (this.targetRow));
+                let bot = (SETTINGS.ROWBUFFER + SETTINGS.CARDY);
+                ctx.fillRect(this.x, top, this.width, bot);
+            }
             for (let j = 0; j < columns; j++) {
                 if (j < minColumns) {
                     this.matrix[i][j].visible = true;

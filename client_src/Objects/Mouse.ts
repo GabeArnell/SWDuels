@@ -131,5 +131,12 @@ class Mouse{
         return MouseState.default;
     }
 
+    rightClick(){
+        
+        if (this.prevHoverObject && this.prevHoverObject.canRightClick(this)){
+            this.prevHoverObject.rightClick(this)
+        }
+    }
+
 
 }

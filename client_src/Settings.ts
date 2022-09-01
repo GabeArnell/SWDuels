@@ -23,5 +23,14 @@ const SETTINGS = {
 
 
     // Textures
-    FIGHT_TEXTURE: "/images/fightprompt.png"
+    FIGHT_TEXTURE: "/images/fightprompt.png",
+    ATTACK_TEXTURE: "/images/fangs.png",
+    HEALTH_TEXTURE: "/images/stamp.png",
+
+    ICON_SIZE: 50,
+    DOWN_ARROW_TEXTURE: "/images/downarrow.png",
+    HAND_TOPPER_TEXTURE: "/images/HandTopper.png",
+    CARD_SELECT_FRAME: "/images/CardSelect.png",
+    CARD_HOVER_SELECT_FRAME: "/images/CardHoverSelect.png",
+
 }

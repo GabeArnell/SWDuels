@@ -36,13 +36,21 @@ class CardHolder extends Sprite{
 
     async render(ctx,mouse:Mouse,renderZ:number){
         let object=this;
-        this.drawRectangle(ctx,{
-            color: "black",
-            width: 3,
-        })
+
+
+        if (this.heldCard != null&& this.heldCard.cardData.owner != mouse.gameParent.viewData.player.name){
+            this.drawRectangle(ctx,{
+                color: "#FF0000",
+                width: 3,
+            })
+        }else if (this.heldCard){
+            this.drawRectangle(ctx,{
+                color: "black",
+                width: 3,
+            })
+        }
         this.renderZ=renderZ;
         
-
         if (this.heldCard){
             this.heldCard.render(ctx,mouse,renderZ);
         }

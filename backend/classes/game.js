@@ -32,22 +32,31 @@ module.exports.Game = class Game{
         this.totalActions = 0;
         this.nextCardID = 1;
         this.passes = 0;
-        this.gameLog = []
+        this.gameLog = [];
 
+        this.board = new Board()
+        this.turn = 0;
+        this.winner = null;
+        this.priority = 0// Math.random() > .5?0:1 // sets to 0 or 1
+        this.waiting = "MULLIGAN"
+
+
+        // Creating players
         for (let id of playerIDs){
+            let startingRow = 1;
+            if (this.playerList%2 == 0){
+                startingRow = 3
+            }
             if (id.startsWith("Robot")){
-                let player = new Robot(id,this);
+                let player = new Robot(id,startingRow,this);
                 this.playerList.push(player);
             }
             else{
-                let player = new Player(id,'Player'+this.playerList.length,this);
+                let player = new Player(id,'Player'+this.playerList.length,startingRow,this);
                 this.playerList.push(player);
             }
         }
-        this.board = new Board()
-        this.turn = 0;
-        this.priority = 0// Math.random() > .5?0:1 // sets to 0 or 1
-        this.waiting = "MULLIGAN"
+
     }
 
     log(text){
@@ -91,12 +100,14 @@ module.exports.Game = class Game{
             passes: this.passes,
 
             stack: [],
+            winner: null,
 
             turn: this.turn,
             waiting: this.waiting,
             totalActions: this.totalActions,
             priority: false // if the player has priority or not, boolean instead of ID
         }
+        
 
         // getting data of stack actions
         for (let stackAction of this.stack){
@@ -111,6 +122,14 @@ module.exports.Game = class Game{
             if (plr.id != myPlayer.id){
                 resData.otherPlayers.push(plr.data(this))
             }
+        }
+        if (this.winner){
+            if (this.winner == "Draw"){
+                resData.winner = "Draw"
+            }else{
+                resData.winner = this.winner.name
+            }
+            resData.priority = false; // no actions after game!
         }
 
         return resData;
@@ -163,13 +182,27 @@ module.exports.Game = class Game{
                 } 
 
                 break;
-                
         }
 
-        // check if waiting on a Robot, if so do the Robot's turn. Otherwise send response back
-        if (this.playerList[this.priority].id.startsWith("Robot")){
-                        // do Robot shit
 
+        // checking if game is over only works for 2 players atm. Sets priority to -1 so no players can input actions after
+        if (this.playerList[0].playerCard.calcHealth() < 1 && this.playerList[1].playerCard.calcHealth() > 0){
+            this.winner = this.playerList[1]
+            this.priority = -1;
+            this.log(`${this.winner.name} wins!`)
+        }else if (this.playerList[1].playerCard.calcHealth() < 1 && this.playerList[0].playerCard.calcHealth() > 0){
+            this.winner = this.playerList[0]
+            this.priority = -1;
+            this.log(`${this.winner.name} wins!`)
+        }else if (this.playerList[1].playerCard.calcHealth() < 1 && this.playerList[0].playerCard.calcHealth() < 1){
+            this.winner = "Draw"
+            this.priority = -1;
+            this.log(`Game ends in a draw.`)
+        }
+        
+        // check if waiting on a Robot, if so do the Robot's turn. Otherwise send response back
+        if (!this.winner && this.playerList[this.priority].id.startsWith("Robot")){
+            // do Robot shit
             this.playerList[this.priority].decideAction(req,res)
             
         }else{
@@ -229,12 +262,26 @@ module.exports.Game = class Game{
                 this.passes+=1;
                 this.log(`Player passes priority.`)
 
+                console.log("Checking state based actions");
+
+
+                // if the actionWasCaused, break
+                // checking state based actions
+                let actionWasCaused = this.checkStateActions();
+                let loopLimit = 0;
+                // if stateebased crap occured, then we need to check if the event pool had anything, and add it to stack if so
+                while (actionWasCaused && loopLimit < 100){
+                    this.checkForEvents();
+                    actionWasCaused=this.checkStateActions();
+                    loopLimit++;
+                }
+
                 // After passing, priority transfers
                 this.priority++;
                 if (this.priority > this.playerList.length-1){ 
                     this.priority = 0;
                 }
-
+                
                 // all characters have passed, so priority resets and the first card on stack is resolved
                 if (this.passes >= this.playerList.length){
                     console.log("Everyone is passing")
@@ -253,6 +300,14 @@ module.exports.Game = class Game{
                 }
         }
         // Check the event pool to see if anything still exists, if so, put it onto the stack. Then repeat until nothing is in event pool 
+        // events have been added here after stuff has beene triggered
+        if (actionResult){ // only check for events if it was a valid action
+            this.checkForEvents();
+        }
+        return actionResult;
+    }
+
+    checkForEvents(){
         if (this.eventPool.length > 0){
             console.log('checking events')
             // check here to see if we need to make a decision on what goes first, otherwise send them off
@@ -263,14 +318,18 @@ module.exports.Game = class Game{
                 return false;
             }
             this.eventPool = this.eventPool.filter(filterEvents);
+            return true;
+        }else{
+            return false;
         }
-        return actionResult;
     }
 
     // Spend energy on a card and place it on stack
     castCard(player,card,actionData){
         let row = null;
-        switch(card.stats.type){
+        let stackAction = null;
+        let targetFailures = null;
+        switch(card.data().type){
             case("Entity"):
                 if (actionData.row == null){
                     return false;
@@ -290,7 +349,7 @@ module.exports.Game = class Game{
                 player.spentDivineConnection+= card.data().cost;
 
                 // remove card from hand and place it on the stack
-                let stackAction = new StackAction({
+                stackAction = new StackAction({
                     type: "SUMMON",
                     card: card,
                     owner: player,
@@ -306,6 +365,49 @@ module.exports.Game = class Game{
 
                 return true;
                 break;
+            case("Evocation"):
+                // checking if can be casted
+                if (player.getDivineConnection(this) < card.data().cost){
+                    console.log('not enough energy',player.getDivineConnection(this), card.data().cost)
+                    return false;
+                }
+
+                // Check if the evocation is valid to target those entities
+                if (!actionData.targets){
+                    return false;
+                }
+                let goodValidation = this.checkTargetValidation(player,card,actionData)
+                if (!goodValidation){
+                    console.log("targeting failure detected")
+                    return false;
+                }
+                // Increase spent energy
+                player.spentDivineConnection+= card.data().cost;
+
+                // remove card from hand and place it on the stack
+                stackAction = new StackAction({
+                    type: "EVOCATION",
+                    card: card,
+                    owner: player,
+                    targets: []
+                })
+                // push all of the cards onto targets
+                for (let targetID of actionData.targets){
+                    let card = this.getCard(targetID)[0];
+                    stackAction.targets.push(card)
+                }
+
+                this.stack.push(stackAction);
+
+                player.hand.splice(actionData.index,1); 
+                this.log(`Player casts ${card.name}, placing its spell onto the stack..`)
+
+                // check if this generates any casting events, if so throw it into the pool
+                this.checkEvents(stackAction,true)
+
+                return true;
+
+                break;
             default:
                 console.log("error, tried to cast card with no casting type")
                 return false;
@@ -313,6 +415,8 @@ module.exports.Game = class Game{
         }
 
     }
+
+
 
     // Spend action to move an entity to a different zone
     putMovementOnStack(player,card,actionData){
@@ -325,8 +429,17 @@ module.exports.Game = class Game{
             console.log('invalid row', row)
             return false;
         }
-        if (card.data().type != 'Entity'){
+        if (card.data().type != 'Entity' && card.data().type != 'Player'){
             console.log("Tried to move card that was not an entity.")
+            return false;
+        }
+        let startingRow = this.board.getCard(card.id)[1];
+        if (startingRow == row){
+            console.log("Tried to move card to zone it was already in.")
+            return false;            
+        }
+        if (Math.abs(startingRow-row) > card.calcMovementRange()){
+            console.log("Tried to move card to zone further than its movement range.")
             return false;
         }
         // remove card from hand and place it on the stack
@@ -335,7 +448,7 @@ module.exports.Game = class Game{
             card: card,
             owner: player,
             row: row,
-            startingRow: this.board.getCard(card.id)[1]
+            startingRow: startingRow
         })
         this.stack.push(stackAction);
 
@@ -350,21 +463,27 @@ module.exports.Game = class Game{
 
     // spend action to attack an entity (in same zone typically)
     putAttackOnStack(player,card,targetCard,actionData){
-        let row = null;
         if (card.data().type != 'Entity'){
             console.log("Tried to attack with card that was not an entity.")
             return false;
         }
-        if (targetCard.data().type != 'Entity'){
+        if (targetCard.data().type != 'Entity' && targetCard.data().type != 'Player'){
             console.log("Tried to attack card that was not an entity.")
             return false;
         }
 
         let cardRow = this.board.getCard(card.id)[1];
         let targetRow = this.board.getCard(targetCard.id)[1];
-        if (cardRow != targetRow){
+        if (Math.abs(cardRow - targetRow) > card.calcAttackRange()){
             console.log("Tried to attack card that was out of range.")
             return false;
+        }
+        // checking stack for attacks already involving this card
+        for (let otherAction of this.stack){
+            if (otherAction.type == "ATTACK" && otherAction.card.id == card.id){
+                console.log("Tried to attack with a card that was already on the stack.")
+                return false;
+            }
         }
 
         // remove card from hand and place it on the stack
@@ -373,14 +492,80 @@ module.exports.Game = class Game{
             owner: player,
             card: card,
             targetCard: targetCard,
-            row: row,
+            row: cardRow,
             targetRow: targetRow
         })
         this.stack.push(stackAction);
 
-        this.log(`Player goes to move ${card.name} to zone ${row+1}.`)
+        this.log(`Player goes to move ${card.name} to zone ${cardRow+1}.`)
         // Check events for card attacking targetcard, throw into pool if so
         this.checkEvents(stackAction,true)
+        return true;
+    }
+
+
+    // Checks if a target is successful or not.
+    checkTargetValidation(player,card,actionData){
+        let targetingList = card.calcTargetRequirements();
+        for (let i = 0; i < targetingList.length; i++){
+            let targetData = targetingList[i]
+            let targetID = actionData.targets[i];
+            if (!targetID){
+                console.log("evocation does not have a target for slot",i)
+                return false;
+            }
+            let goodTarget = this.validateSingleTarget(player,targetData,targetID,actionData.targets)
+            if (!goodTarget){
+                return false;
+            }
+        }
+        return true
+    }
+
+    validateSingleTarget(player,targetData,targetID,allTargets){
+        if (!targetID){
+            console.log("evocation does not have a target for slot",i)
+            return false;
+        }
+        let targetCard = this.getCard(targetID);
+        if (!targetCard){
+            console.log("evocation does not have a card for slot",i)
+            return false;
+        }
+        for (let key in targetData.requirements){
+            switch(key){
+                case("type"):
+                    if (targetCard[0].data().type != targetData.requirements[key]){
+                        console.log("denied due to type")
+                        return false
+                    }
+                    break;
+                case("unique"):
+                    if (targetData.requirements[key] == true && allTargets.firstIndexOf(targetID) != allTargets.lastIndexOf(targetID)){
+                        console.log("denied due to unique")
+                        return false
+                    }
+                    break;
+                case("zone"):
+                    if (targetCard[1]=="board" && !targetData.requirements[key].includes("board")){
+                        console.log("denied due to zone")
+                        return false
+                    }
+                    if (targetCard[1]=="hand"&& !targetData.requirements[key].includes("hand")){
+                        console.log("denied due to zone")
+                        return false
+                    }
+                    break;
+                case("range"):
+                    if (targetCard[1]=="board"){
+                        let targetRow = this.board.getCard(targetID)[1]
+                        if (targetRow == null || Math.abs(player.data(player.id).currentRow - targetRow) > targetData.requirements[key]){
+                            console.log("denied due to range")
+                            return false
+                        }
+                    } 
+            }
+        }
         return true;
     }
 
@@ -391,7 +576,57 @@ module.exports.Game = class Game{
     }
 
 
+    resolveSpell(stackAction){
+        stackAction.card.execute(this,stackAction);
+        this.checkEvents(stackAction,false) 
+    }
+
     attackEntity(stackAction){
+        // trigger before something would be summoned/when it is being summoned
+        let card = null;
+        let targetCard = null;
+        let boardCardResults = this.board.getCard(stackAction.card.id)
+        if (!boardCardResults[0]){
+            console.log("Attack fizzles as attacker is no longer on board.")
+            return;
+        }
+        card = boardCardResults[0]
+        if (boardCardResults[1] != stackAction.row){
+            console.log("Movement fizzles as attacking card has been moved.")
+            return;
+        }
+        boardCardResults = this.board.getCard(stackAction.targetCard.id)
+        if (!boardCardResults[0]){
+            console.log("Attack fizzles as defender is no longer on board.")
+            return;
+        }
+        targetCard = boardCardResults[0]
+
+        if (boardCardResults[1] != stackAction.targetRow){
+            console.log("Movement fizzles as defending card has been moved.")
+            return;
+        }
+
+        if (Math.abs(boardCardResults[1] - stackAction.targetRow) > card.calcAttackRange()){
+            console.log("Tried to attack card that was out of range.")
+            return false;
+        }
+        
+        if (card.data().attack < 1){
+            console.log("Attack fizzles due to less than 1 attack.")
+            return;
+        }
+
+        this.log(`${card.data().name} attacks ${targetCard.data().name}`)
+        card.attack(this,targetCard);
+
+        if (targetCard.data().type == "Entity"){
+            targetCard.attack(this,card);
+        }
+        console.log('attacks are done')
+
+        // trigger after movement crap
+        this.checkEvents(stackAction,false)
 
     }
 
@@ -406,12 +641,12 @@ module.exports.Game = class Game{
             console.log("Movement fizzles as card has been moved.")
             return;
         }
-        if (Math.abs(boardCardResults[1]-stackAction.row) != 1){
-            console.log("Movement fizzles as the card is out of range.")
+        if (Math.abs(boardCardResults[1]-stackAction.row) > boardCardResults[0].calcMovementRange()){
+            console.log("Movement fizzles as the card is out of movement range.")
             return;
         }
         
-        this.board.moveEntity(boardCardResults[0],stackAction.row)
+        this.board.moveCard(boardCardResults[0],stackAction.row)
         // trigger after movement crap
         this.checkEvents(stackAction,false)
     }
@@ -430,9 +665,13 @@ module.exports.Game = class Game{
 
     checkEvents(stackAction,placingOnStack){
         console.log('checking events for',stackAction.type)
+        let foundCard = false;
         for (let player of this.playerList){
             let cards = player.getAllCards();
             for (let card of cards){
+                if (stackAction.card && card == stackAction.card){
+                    foundCard = true;
+                }
                 //console.log(card)
                 for (let ability of card.abilities){
                     console.log('checking ability of player card')
@@ -451,6 +690,9 @@ module.exports.Game = class Game{
             }
         }
         for (let card of this.board.getAllCards()){
+            if (stackAction.card && card == stackAction.card){
+                foundCard = true;
+            }
             for (let ability of card.abilities){
                 let returnData = ability.trigger(stackAction,placingOnStack,card.owner,this);
                 if (returnData){
@@ -458,6 +700,20 @@ module.exports.Game = class Game{
                         type: "EVENT",
                         owner: card.owner,
                         card: card,
+                        ability: ability,
+                        savedData: returnData
+                    })
+                }
+            }    
+        }
+        if (!foundCard){
+            for (let ability of stackAction.card.abilities){
+                let returnData = ability.trigger(stackAction,placingOnStack,stackAction.card.owner,this);
+                if (returnData){
+                    this.eventPool.push({
+                        type: "EVENT",
+                        owner: stackAction.card.owner,
+                        card: stackAction.card,
                         ability: ability,
                         savedData: returnData
                     })
@@ -473,4 +729,52 @@ module.exports.Game = class Game{
         ability.execute(stackAction.savedData,this)
     }
 
+    checkStateActions(){
+        let triggeredSomething = false;
+        console.log('checking state based actions')
+        for (let player of this.playerList){
+            let cards = player.getAllCards();
+            for (let card of cards){
+                if (card.checkState(this)){
+                    triggeredSomething = true;
+                }
+                
+            }
+        }
+        for (let card of this.board.getAllCards()){
+            if (card.checkState(this)){
+                triggeredSomething = true;
+            }
+        }
+
+        // Sorting events by Active Player first(?) then nonactive people 
+        return triggeredSomething
+    }
+
+    getCard(cardID){
+        let boardSearch = this.board.getCard(cardID);
+        if (boardSearch[0] != null){
+            return [boardSearch[0],"board"]
+        }
+        for (let player of this.playerList){
+            for (let card of player.hand){
+                if (card.id == cardID){
+                    return [card,"hand"]
+                }
+            }
+            for (let card of player.deck){
+                if (card.id == cardID){
+                    return [card,"deck"]
+                }
+            }
+            for (let card of player.grave){
+                if (card.id == cardID){
+                    return [card,"grave"]
+                }
+            }
+        }
+    
+        return null;
+    }
+    
 }

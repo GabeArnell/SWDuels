@@ -8,7 +8,7 @@ fetch("/newgame",{
     body: JSON.stringify({
         testAttribute: "test value",
         id: 2
-
+        
     })
 }).then((response)=>{
     response.json().then(json=>{

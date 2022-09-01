@@ -10,6 +10,9 @@ class CanvasScreen {
         this.canvasDOM = canvasDOM;
         this.ctx = this.canvasDOM.getContext("2d");
         this.mouse = mouseObject;
+        this.canvasDOM.oncontextmenu = function () {
+            return false;
+        };
     }
     addSprite(child) {
         this.sprites.push(child);

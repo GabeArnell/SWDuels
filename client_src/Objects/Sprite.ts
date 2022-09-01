@@ -59,14 +59,14 @@ class Sprite{
                 break;
             case(PositionReference.topleft):
             default:
-                ctx.drawImage(img,this.x,this.y,this.width,this.height,);
+                ctx.drawImage(img,this.x,this.y,this.width,this.height);
         }
     }
 
     drawRectangle(ctx,box){
         ctx.lineWidth = box.width
         ctx.fillStyle = box.color;
-    
+        ctx.strokeStyle = ctx.fillStyle
         switch(this.position){
             case(PositionReference.center):
                 if (!box.fill)
@@ -93,6 +93,14 @@ class Sprite{
 
     canDrag(mouse:Mouse){
         return this.draggable;
+    }
+
+    rightClick(mouse:Mouse){
+        
+    }
+
+    canRightClick(mouse:Mouse){
+        return false;
     }
 
     dragging(mouse:Mouse){

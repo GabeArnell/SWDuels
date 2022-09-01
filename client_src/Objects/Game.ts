@@ -15,11 +15,14 @@ class Game{
 
     public myStack:StackHolder = null;
 
+    public detailOverlay:DetailOverLay = null;
+
     public myPrompt:QuestionDisplay = null;
 
     public myPassButton:PassButton = null;
 
     public selectedCard:CardSprite = null;
+
 
     public inputDebouce:boolean = false;
 
@@ -39,8 +42,13 @@ class Game{
             //console.log("X - ", e.pageX, " Y - ", e.pageY);
         }
         addEventListener("mousemove", track, false);
-        addEventListener("mousedown", ()=>{
-            this.mouse.mouseDown=true;
+        addEventListener("mousedown", (event)=>{
+            if (event.button == 0){
+                this.mouse.mouseDown=true;
+            }
+            if (event.button == 2){
+                this.mouse.rightClick();
+            }
         }, false);
         addEventListener("mouseup", ()=>{
             this.mouse.mouseDown=false;
@@ -65,6 +73,8 @@ class Game{
         let StackObject = new StackHolder({x: SETTINGS.BOARDX, y: 200,visible:true,height:300,width:SETTINGS.STACKX, position:PositionReference.topleft},this);
         this.myPassButton = new PassButton(this,{visible: false, width: SETTINGS.STACKX/2,height: 50,x: SETTINGS.BOARDX+SETTINGS.STACKX/4, y: 100})
 
+        let detailOverlayObject = new DetailOverLay(this,{visible:false,height:SETTINGS.BOARDY,width:SETTINGS.BOARDX, position:PositionReference.topleft});
+        this.detailOverlay = detailOverlayObject;
 
         this.myHand = HandObject
         this.myBoard = BoardObject
@@ -73,6 +83,9 @@ class Game{
         this.RenderObject.addSprite(HandObject);
         this.RenderObject.addSprite(StackObject);
         this.RenderObject.addSprite(this.myPassButton)
+        this.RenderObject.addSprite(this.detailOverlay)
+
+
         // filling hand with items
         console.log(this.viewData)
         for (let cardData of this.viewData.player.hand){
@@ -151,7 +164,6 @@ class Game{
         })
     }
 
-
     resolveResponse(newView){
         this.inputDebouce = false;
         // change zones+board
@@ -180,6 +192,8 @@ class Game{
         // clear selections
         this.selectedCard = null;
 
+        this.detailOverlay.quitTargetingSession();
+
         // Check pass button
         this.myPassButton.visible = false;
 
@@ -189,5 +203,22 @@ class Game{
         if (this.viewData.priority){
             this.getPriority();
         }
+    }
+
+
+    // this still needs to cover cards from grave and shit. 
+    getAllCards(){
+        let list:CardSprite[] = [];
+        for (let cardHolder of this.myBoard.spriteChildren()){
+            if (cardHolder.heldCard){
+                list.push(cardHolder.heldCard)
+            }
+        }
+        for (let cardHolder of this.myHand.spriteChildren()){
+            if (cardHolder.heldCard){
+                list.push(cardHolder.heldCard)
+            }
+        }
+        return list; 
     }
 }
