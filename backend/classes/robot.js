@@ -53,7 +53,7 @@ module.exports.Robot = class Robot extends Player{
 
     canSummonCard(){
         for (let card of this.hand){
-            if (card.data().cost <= this.getDivineConnection(this.game) && card.data().type == "Entity"){
+            if (card.data().cost <= this.getDivineConnection(this.game) && card.data().type.includes("Entity")){
                 return card;
             }
         }

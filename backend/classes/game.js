@@ -8,7 +8,15 @@ const {Board} = require("./board")
     ACTION, // player has priority, waiting for them to take an action
 
 */
+const {zoneCardMap,boardCardMap} = require("../cardcontroller")
 
+function recursiveObjCopy(original){
+    let copy = {}
+    for (let key in original){
+        copy[key] = original[key]
+    }
+    return copy;
+}
 
 module.exports.Game = class Game{
     id = null;
@@ -68,6 +76,19 @@ module.exports.Game = class Game{
         this.passes = 0;
         this.priority = 0;// this should alternate technically but w/e
         this.log(`Turn ${this.turn} begins.`)
+
+        // unexhaust all entities
+        function filterExhaust(exhaust){
+            exhaust.turns--;
+            if (exhaust < 1){
+                return false;
+            }
+            return true;
+        }
+        for (let card of this.board.getAllCards()){
+            card.exhausts = card.exhausts.filter(filterExhaust);
+        }
+
         // draw cards for all of the players
         for (let player of this.playerList){
             player.drawCard();
@@ -94,7 +115,7 @@ module.exports.Game = class Game{
         let resData = {
             id: this.id,
             status: "success",
-            board: this.board.data(),
+            board: this.board.data(this),
             player: myPlayer.data(this),
             otherPlayers: [],
             passes: this.passes,
@@ -246,6 +267,7 @@ module.exports.Game = class Game{
                 actionResult=  (this.putMovementOnStack(player,card,actionData))
                 break;
             case("ATTACK"):
+                this.passes = 0;
                 cardResults = this.board.getCard(actionData.attacker);
                 card = cardResults[0];
                 if (!card){
@@ -258,6 +280,61 @@ module.exports.Game = class Game{
                 }
                 actionResult=  (this.putAttackOnStack(player,card,targetCard,actionData))
                 break;
+            case("AGILEATTACK"): // client wants to do normal movement then attack
+                this.passes = 0;
+                cardResults = this.board.getCard(actionData.attacker);
+                card = cardResults[0];
+                if (!card){
+                    console.log('no card')
+                    return false;
+                }
+                cardResults = this.board.getCard(actionData.defender)
+                targetCard = cardResults[0]
+                if (!targetCard){
+                    console.log('no target card')
+                    return false;
+                }
+                // informs that it can correctly attack
+                actionResult = this.putAttackOnStack(player,card,targetCard,actionData)
+                if (!actionResult){
+                    console.log(' attack stack failed')
+                    return false;
+                }
+                actionResult = this.putMovementOnStack(player,card,actionData)
+                if (!actionResult){
+                    console.log(' movement stack failed')
+                    this.stack.pop(); // remove the attack stack if the movement action is not valid
+                    this.eventPool = []; // This may cause bugs. reset the event pool from any movement shit the above action may have caused. 
+                }
+
+                break;
+            case("AGILEMOVE"):
+                this.passes = 0;
+                cardResults = this.board.getCard(actionData.attacker);
+                card = cardResults[0];
+                if (!card){
+                    console.log('no card')
+                    return false;
+                }
+                cardResults = this.board.getCard(actionData.defender)
+                targetCard = cardResults[0]
+                if (!targetCard){
+                    console.log('no target card')
+                    return false;
+                }
+                // informs that it can correctly attack
+                actionResult = this.putMovementOnStack(player,card,actionData)
+                if (!actionResult){
+                    console.log(' movement stack failed')
+                    return false;
+                }
+                actionResult = this.putAttackOnStack(player,card,targetCard,actionData)
+                if (!actionResult){
+                    console.log(' attack stack failed')
+                    this.stack.pop(); // remove the movement stack if the attack action is not valid
+                    this.eventPool = []; // This may cause bugs. reset the event pool from any attack shit the above action may have caused. 
+                }
+                break
             case("PASS"):
                 this.passes+=1;
                 this.log(`Player passes priority.`)
@@ -329,7 +406,7 @@ module.exports.Game = class Game{
         let row = null;
         let stackAction = null;
         let targetFailures = null;
-        switch(card.data().type){
+        switch(card.data().type[0]){
             case("Entity"):
                 if (actionData.row == null){
                     return false;
@@ -429,7 +506,7 @@ module.exports.Game = class Game{
             console.log('invalid row', row)
             return false;
         }
-        if (card.data().type != 'Entity' && card.data().type != 'Player'){
+        if (!card.data().type.includes('Entity') && !card.data().type.includes('Player')){
             console.log("Tried to move card that was not an entity.")
             return false;
         }
@@ -442,18 +519,31 @@ module.exports.Game = class Game{
             console.log("Tried to move card to zone further than its movement range.")
             return false;
         }
-        // remove card from hand and place it on the stack
+
+        if (card.data().exhausted){
+            console.log('cant move exhausted card')
+            return;
+        }
+
+        if (actionData.actiontype != "AGILEMOVE"){ // dont exhaust the user on agile movement, otherwise the attack will fail. The attack will exhaust it for both reasons
+            card.addExhaust("Moved",card.id,1)
+        }
+
+
         let stackAction = new StackAction({
             type: "MOVEENTITY",
             card: card,
             owner: player,
             row: row,
-            startingRow: startingRow
+            startingRow: startingRow,
+            chainedToTop: false,
         })
+        if (actionData.actiontype == "AGILEMOVE"){ // dont exhaust the user on agile movement, otherwise the attack will fail. The attack will exhaust it for both reasons
+            stackAction.chainedToTop = true;
+        }
+
         this.stack.push(stackAction);
 
-        player.hand.splice(actionData.index,1); 
-        console.log('new length', player.hand.length)
         this.log(`Player goes to move ${card.name} to zone ${row+1}.`)
 
         // Check events for character moving here, throw into pool if so
@@ -463,21 +553,31 @@ module.exports.Game = class Game{
 
     // spend action to attack an entity (in same zone typically)
     putAttackOnStack(player,card,targetCard,actionData){
-        if (card.data().type != 'Entity'){
+        if (!card.data().type.includes('Entity')){
             console.log("Tried to attack with card that was not an entity.")
             return false;
         }
-        if (targetCard.data().type != 'Entity' && targetCard.data().type != 'Player'){
+        if (!targetCard.data().type.includes('Entity') && !targetCard.data().type.includes('Player')){
             console.log("Tried to attack card that was not an entity.")
             return false;
         }
 
         let cardRow = this.board.getCard(card.id)[1];
+        if (actionData.actiontype=="AGILEATTACK"){ // ensures that attack viability is being counted from their moved position
+            cardRow = actionData.row;
+        }
+
+
         let targetRow = this.board.getCard(targetCard.id)[1];
         if (Math.abs(cardRow - targetRow) > card.calcAttackRange()){
             console.log("Tried to attack card that was out of range.")
             return false;
         }
+        if (card.data().exhausted){
+            console.log('cant attack with exhausted card')
+            return;
+        }
+
         // checking stack for attacks already involving this card
         for (let otherAction of this.stack){
             if (otherAction.type == "ATTACK" && otherAction.card.id == card.id){
@@ -485,16 +585,23 @@ module.exports.Game = class Game{
                 return false;
             }
         }
+        if (actionData.actiontype == "AGILEMOVE"){ // exhausting on agile movement
+            card.addExhaust("Moved",card.id,1)
+        }
 
-        // remove card from hand and place it on the stack
         let stackAction = new StackAction({
             type: "ATTACK",
             owner: player,
             card: card,
             targetCard: targetCard,
             row: cardRow,
-            targetRow: targetRow
+            targetRow: targetRow,
+            chainedToTop: false,
         })
+        if (actionData.actiontype=="AGILEATTACK"){ // ensures that attack viability is being counted from their moved position
+            stackAction.chainedToTop = true;
+        }
+        
         this.stack.push(stackAction);
 
         this.log(`Player goes to move ${card.name} to zone ${cardRow+1}.`)
@@ -535,7 +642,7 @@ module.exports.Game = class Game{
         for (let key in targetData.requirements){
             switch(key){
                 case("type"):
-                    if (targetCard[0].data().type != targetData.requirements[key]){
+                    if (!targetCard[0].data().type.includes(targetData.requirements[key])){
                         console.log("denied due to type")
                         return false
                     }
@@ -572,7 +679,11 @@ module.exports.Game = class Game{
 
     resolveStackAction(){
         let topAction = this.stack.pop();
-        topAction.resolve(this)
+        topAction.resolve(this);
+        while (this.stack.length > 0 && this.stack[this.stack.length-1].chainedToTop){
+            topAction=this.stack.pop();
+            topAction.resolve(this);
+        }
     }
 
 
@@ -601,7 +712,7 @@ module.exports.Game = class Game{
             return;
         }
         targetCard = boardCardResults[0]
-
+        
         if (boardCardResults[1] != stackAction.targetRow){
             console.log("Movement fizzles as defending card has been moved.")
             return;
@@ -618,9 +729,10 @@ module.exports.Game = class Game{
         }
 
         this.log(`${card.data().name} attacks ${targetCard.data().name}`)
+        card.addExhaust("Attacked",card.id,1)
         card.attack(this,targetCard);
 
-        if (targetCard.data().type == "Entity"){
+        if (targetCard.data().type.includes("Entity")){
             targetCard.attack(this,card);
         }
         console.log('attacks are done')
@@ -656,10 +768,55 @@ module.exports.Game = class Game{
 
         let zoneCard = stackAction.card;
         let boardCard = new zoneCard.boardClass(stackAction.card)
+        boardCard.addExhaust("Summoned",boardCard.owner.id,1)
         this.board.addEntity(boardCard,stackAction.row)
         // trigger calls/etb triggers
         this.checkEvents(stackAction,false)
+    }
+    copyBoardCard(originalCard,owner){
+        const newID = this.nextCardID++;
+        const zoneClass = zoneCardMap.get(originalCard.data().name);
+        let zoneCard = new zoneClass({
+            id: newID,
+            owner: owner
+        })
+        const boardClass = boardCardMap.get(originalCard.data().name)
+        let copiedCard = new boardClass(zoneCard)
+        copiedCard.effects = [];
+        for (let effect of originalCard.effects){
+            copiedCard.effects.push(effect) // sharing the effects here
+        }
+        for (let exhaust of originalCard.exhausts){
+            copiedCard.exhausts.push(recursiveObjCopy(exhaust))
+        }
+        copiedCard.abilities = []; // clear the abilities
+        for (let ability of originalCard.abilities){
+            copiedCard.abilities.push(new ability.class(copiedCard,ability))
+        }
+        return copiedCard
+    }
 
+    copyZoneCardAsBoard(originalCard,owner){
+        let newID = this.nextCardID++;
+        let zoneClass = zoneCardMap.get(originalCard.data().name);
+        let zoneCard = new zoneClass({
+            id: newID,
+            owner: owner
+        })
+        let boardClass = boardCardMap.get(originalCard.data().name)
+        let copiedCard = new boardClass(zoneCard)
+        return copiedCard
+    }
+
+    placeCreatedBoardCard(newCard,row){
+        this.board.addEntity(newCard,row)
+        // trigger etc and create triggers
+        let stackAction = new StackAction({ //used as a stack action for purpose of triggering death, does not actually go on stack
+            type:"CREATE",
+            card: newCard,
+        })
+        newCard.addExhaust("Copied",newCard.owner.id,1)
+        this.checkEvents( stackAction,false)
     }
 
 

@@ -191,8 +191,10 @@ class Game{
         
         // clear selections
         this.selectedCard = null;
+        
 
         this.detailOverlay.quitTargetingSession();
+        this.detailOverlay.cardPointers = []
 
         // Check pass button
         this.myPassButton.visible = false;

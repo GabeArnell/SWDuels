@@ -12,7 +12,6 @@ class QuestionDisplay extends Sprite{
         this.promptText = ""
         this.responses = []
         this.visible = false;
-
     }
 
     askQuestion(data:{prompt:String,responses:String[],callback:Function}){

@@ -6,15 +6,13 @@
 const {StackAction} = require("./StackAction")
 module.exports.Board_Card = class Board_Card{
 
-
-
     constructor(zoneCard, zoneClass){
         this.zoneClass = zoneClass
         this.stats = zoneCard.stats;
-        this.exhausted = true;
         this.abilities = [];
         this.id = zoneCard.id;
         this.owner = zoneCard.owner;
+        this.lastRecordedRow = null;
         this.effects = [
             /*  {
                 source: card.id
@@ -30,6 +28,11 @@ module.exports.Board_Card = class Board_Card{
 
             */
         ];
+        this.exhausts= [/*
+            reason: Summoned/Copied/Moved/Attacked/Ability
+            source: card.id if ability
+            turns: 1 // how many turns this exhaust takes for
+        */]
 
         this.died = false;
     }
@@ -47,12 +50,12 @@ module.exports.Board_Card = class Board_Card{
 
     calcType(){
 
-        return this.stats.type;
+        return [this.stats.type];
     }
 
     calcMovementRange(){
         let baseMovement = 0;
-        if (this.stats.type == ""){
+        if (this.calcType().includes("Entity") ||this.calcType().includes("Player")) {
             baseMovement = 1;
         }
         return 1;
@@ -64,7 +67,7 @@ module.exports.Board_Card = class Board_Card{
         return this.stats.name
     }
 
-    data(playerID){
+    data(game){
         let resData = {
             name: this.calcName(),
             imageName: this.stats.imageName,
@@ -76,8 +79,51 @@ module.exports.Board_Card = class Board_Card{
             health: this.calcHealth(),
             movementRange: this.calcMovementRange(),
             attackRange: this.calcAttackRange(),
+            abilities: [],
+            exhausted: false,
+        }
+        for (let exhausts of this.exhausts){
+            if (exhausts.turns > 0){
+                switch(exhausts.reason){
+                    case("Summoned"):
+                    case("Copied"):
+                        if ( !this.hasKeyWord("SURGE")){
+                            resData.exhausted = true;
+                        }
+                        break;
+                    case("Moved"):
+                    case("Attacked"):
+                        resData.exhausted = true;
+                        break;
+                }
+            }
+        }
+        for (let ability of this.abilities){
+            resData.abilities.push(ability.data())
         }
         return resData
+    }
+
+    addExhaust(reason,source,turns=0,extraData={}){
+        this.exhausts.push(
+            {
+                reason: reason,
+                source: source,
+                turns: turns,
+                extraData:extraData
+            }
+        )
+        console.log('exhausts:',this.exhausts)
+    }
+
+    // searches abilities for the keyword
+    hasKeyWord(keyword){
+        for (let ability of this.abilities){
+            if (ability.keyword == keyword){
+                return true;
+            }
+        }
+        return false;
     }
 
     attack(game,defender){
@@ -110,6 +156,7 @@ module.exports.Board_Card = class Board_Card{
     
     // moves
     die(game){
+        this.lastRecordedRow = game.board.getCard(this.id)[1];
         let successfulRemoval = game.board.removeCard(this)
         if (successfulRemoval){
             let owner = this.owner;

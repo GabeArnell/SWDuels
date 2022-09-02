@@ -12,31 +12,26 @@ module.exports.Board = class Board {
         this.matrix = []    
         for (let i = 0; i < 5; i++){
             this.matrix.push({
-                wards: [],
-                entities: []
+                cards: []
             })
         }
     }
 
     addEntity(entity,row){
-        this.matrix[row].entities.push(entity)
+        this.matrix[row].cards.push(entity)
     }
     
 
-    data(playerID){
+    data(game){
         let resData = {
             rows: []
         }
         for (let row of this.matrix){
             let rowData = {
-                wards: [],
-                entities: [],
+                cards: []
             }
-            for (let ward of row.wards){
-                rowData.wards.push(ward.data(playerID))
-            }
-            for (let entity of row.entities){
-                rowData.entities.push(entity.data(playerID))
+            for (let card of row.cards){
+                rowData.cards.push(card.data(game))
             }
             resData.rows.push(rowData);
         }
@@ -50,13 +45,7 @@ module.exports.Board = class Board {
         // searching board
         let i = 0;
         for (let row of this.matrix){
-            for (let c of row.entities){
-                if (c.data().id == cardID){
-                    card = c;
-                    foundRow = i;
-                }
-            }
-            for (let c of row.wards){
+            for (let c of row.cards){
                 if (c.data().id == cardID){
                     card = c;
                     foundRow = i;
@@ -71,10 +60,7 @@ module.exports.Board = class Board {
     getAllCards(){
         let list = []
         for (let row of this.matrix){
-            for (let c of row.entities){
-                list.push(c)
-            }
-            for (let c of row.wards){
+            for (let c of row.cards){
                 list.push(c)
             }
         }
@@ -91,11 +77,10 @@ module.exports.Board = class Board {
         }
         //removed it
         for (let row of this.matrix){
-            row.entities = row.entities.filter(filter);
-            row.wards = row.wards.filter(filter);
+            row.cards = row.cards.filter(filter);
         }
         // placing it
-        this.matrix[newRow].entities.push(card)
+        this.matrix[newRow].cards.push(card)
     }
 
     removeCard(card){
@@ -108,8 +93,7 @@ module.exports.Board = class Board {
             return true;
         }
         for (let row of this.matrix){
-            row.entities = row.entities.filter(filter);
-            row.wards = row.wards.filter(filter);
+            row.cards = row.cards.filter(filter);
         }
         return didRemove;
     }

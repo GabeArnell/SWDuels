@@ -109,7 +109,7 @@ class Mouse{
             return MouseState.dragging;
         }
         if (hoverObject && this.mouseDown && hoverObject.click && new Date().getTime() > this.lastClick+1000){
-            hoverObject.click( this);
+            hoverObject.click(this);
             this.lastClick = new Date().getTime();
             return MouseState.hovering;
         }

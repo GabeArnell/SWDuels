@@ -7,11 +7,16 @@ class Board extends Sprite{
 
     public matrix = []; // 2d array of card holders
     public targetRow = null; // row number currently being highlighted
-    
+    public rowSelectButtons = [];
+
     constructor(config){
         super(config)
         for (let i = 0; i < 5; i++){
             this.matrix.push([]);
+            let top = 50+((SETTINGS.ROWBUFFER+SETTINGS.CARDY)*(i))
+
+            let but = new SelectBoardRowButton(this,i,{visible: false, width: SETTINGS.STACKX/2+30,height: 40,x: this.x+50, y: top})
+            this.rowSelectButtons.push(but)
         }
 
         // adding 25 to each row, only 5 should be visible
@@ -41,14 +46,9 @@ class Board extends Sprite{
         for (let i = 0; i < newMatrix.rows.length; i++){
             let rowData = newMatrix.rows[i];
             let column = 0;
-            for (let ward of rowData.wards){
-                let wardSprite = new CardSprite(ward,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
-                this.matrix[i][column].setCard(wardSprite);
-                column++
-            }
-            for (let entity of rowData.entities){
-                let entitySprite = new CardSprite(entity,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
-                this.matrix[i][column].setCard(entitySprite);
+            for (let card of rowData.cards){
+                let cSprite = new CardSprite(card,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
+                this.matrix[i][column].setCard(cSprite);
                 column++
             }
         }
@@ -97,29 +97,36 @@ class Board extends Sprite{
         // background texture
 
 
-        let textureHeight = 150;
-        let backgroundTexture = await this.getImage("/images/ForestLand.png")
-        let textureLength = textureHeight*2;
+        let backgroundTexture = await this.getImage("/images/DirtPathLand.png")
+        let bot = (SETTINGS.ROWBUFFER+SETTINGS.CARDY)
+        let textureLength = bot*2;
 
         for (let i = 0; i < this.matrix.length;i++){
             let length = this.matrix[i].length;
+            let top = 10+((SETTINGS.ROWBUFFER+SETTINGS.CARDY)*(i))
+
             for (let slide = 0; slide < length/2;slide++){
-                ctx.drawImage(backgroundTexture,this.x+(textureLength*slide),-20+((SETTINGS.ROWBUFFER+SETTINGS.CARDY)*(i)),textureLength,textureHeight)
+                ctx.drawImage(backgroundTexture,this.x+(textureLength*slide),top,textureLength,bot)
             }
             if (this.targetRow != null && this.targetRow == i){
                 ctx.fillStyle = "#7EE9FC";
                 let top = 10+((SETTINGS.ROWBUFFER+SETTINGS.CARDY)*(this.targetRow))
-                let bot = (SETTINGS.ROWBUFFER+SETTINGS.CARDY)
                 ctx.fillRect(this.x,top,this.width,bot)    
             }
     
             for (let j=0; j<columns;j++){
                 if (j < minColumns){
                     this.matrix[i][j].visible = true
-                    this.matrix[i][j].render(ctx,mouse,renderZ)
+                    await this.matrix[i][j].render(ctx,mouse,renderZ)
                 }
             }
         }
+        if (mouse.gameParent.detailOverlay.possibleTargetRows.length > 0){
+            for (let but of this.rowSelectButtons){
+                renderZ = await but.render(ctx,mouse,renderZ);
+            }
+        }
+
 
         return renderZ+1
     }
@@ -130,8 +137,46 @@ class Board extends Sprite{
             ...this.matrix[1],
             ...this.matrix[2],
             ...this.matrix[3],
-            ...this.matrix[4]
+            ...this.matrix[4],
+            ...this.rowSelectButtons
         ]
         return list;
+    }
+}
+
+class SelectBoardRowButton extends Sprite{
+    public parent:Board=null
+    public row=null;
+    constructor(parent:Board,row,config){
+        super(config);
+        this.parent = parent;
+        this.row = row;
+    }
+
+    click(mouse:Mouse){
+        this.visible = false;
+        if (mouse.gameParent.detailOverlay.possibleTargetRows.includes(this.row)){
+            mouse.gameParent.detailOverlay.addTargetRow(this.row);
+        }
+    }
+
+    async render (ctx,mouse:Mouse,renderZ:number){
+        if (!mouse.gameParent.detailOverlay.possibleTargetRows.includes(this.row)){
+            this.visible = false;
+            return renderZ;
+        }else{
+            this.visible = true;
+        }
+        this.renderZ=renderZ;
+        this.drawRectangle(ctx,{
+            fill: true,
+            color: "orange"
+        })
+        ctx.font = "bold 25px Arial";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center"
+        ctx.fillText("Select Zone "+(this.row+1),this.x+this.width/2,this.y+this.height/2+8 );
+
+        return renderZ+1
     }
 }

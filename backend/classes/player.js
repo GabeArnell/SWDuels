@@ -4,7 +4,7 @@ This manages a player entity, their zones of control (hand/deck/grave/banish) as
 
 */
 const figmentModule = require("./cards/Figment")
-const shatteredSeekerModule = require("./cards/ShatteredSeeker")
+const gnomeModule = require("./cards/TwinsoulGnome")
 const quellModule = require("./cards/Quell")
 
 
@@ -40,7 +40,7 @@ module.exports.Player = class Player{
                     owner: this
                 });
             }else{
-                card = new figmentModule.Zone_Card({
+                card = new gnomeModule.Zone_Card({
                     id: this.game.nextCardID++,
                     owner: this
                 });

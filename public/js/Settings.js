@@ -24,5 +24,6 @@ const SETTINGS = {
     HAND_TOPPER_TEXTURE: "/images/HandTopper.png",
     CARD_SELECT_FRAME: "/images/CardSelect.png",
     CARD_HOVER_SELECT_FRAME: "/images/CardHoverSelect.png",
+    EXHAUSTED_TEXTURE: "/images/exhausted.png",
 };
 //# sourceMappingURL=Settings.js.map

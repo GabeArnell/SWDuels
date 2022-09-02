@@ -26,6 +26,7 @@ module.exports.Zone_Card = class ShatteredSeeker_Zone extends Zone_Card{
         let targetList = [
             {
                 text: "Select Target Entity.",
+                canCancel: true,
                 requirements: {
                     type: "Entity",
                     zone: ["board"],

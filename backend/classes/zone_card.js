@@ -12,6 +12,7 @@ module.exports.Zone_Card = class Zone_Card{
         this.boardClass = boardClass;
         this.stats = stats;
         this.id = data.id || -1;
+        //console.log('creating zone card',stats,'data',data)
         this.owner = data.owner || null;
         if (boardCard){
             this.boardCard = boardCard
@@ -31,6 +32,9 @@ module.exports.Zone_Card = class Zone_Card{
         return null;
     }
 
+    calcType(){
+        return [this.stats.type];
+    }
     
     data(){
         // cost and all other stuff would be calculated here
@@ -40,7 +44,7 @@ module.exports.Zone_Card = class Zone_Card{
             imageName: this.stats.imageName,
             cost: this.stats.cost,
             id: this.id,
-            type: this.stats.type,
+            type: this.calcType(),
             owner: this.owner.name, // this should be a different owner ig
 
             range: this.calcSpellRange(),

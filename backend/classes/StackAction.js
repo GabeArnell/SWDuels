@@ -5,6 +5,7 @@ module.exports.StackAction = class StackAction{
     constructor(build={}){
         this.type = build.type;
         this.owner = build.owner;
+        this.chainedToTop = build.chainedToTop || false; // if a stack action is chained to the stack action on top of it it completes immediatly without opportunities for events or swift crap
         switch(this.type){
             case("MOVEENTITY"):
                 this.startingRow = build.startingRow;
