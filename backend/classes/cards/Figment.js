@@ -1,5 +1,6 @@
 const {Zone_Card} = require("../zone_card")
 const {Board_Card} = require("../board_card")
+const SpellShieldAbilityClass = require("../abilities/SpellShield1").Ability;
 
 module.exports.stats = {
     name: "Figment",
@@ -20,6 +21,7 @@ module.exports.Board_Card = class Figment_Board extends Board_Card{
     constructor(Zone_Card){
         super(Zone_Card,module.exports.Zone_Card);
         this.abilities.push(new module.exports.Figment_Ability(this))
+        this.abilities.push(new SpellShieldAbilityClass(this))
     }
 }
 
@@ -34,13 +36,13 @@ module.exports.Figment_Ability = class Figment_Call_Ability {
         }
     }
 
-    trigger(stackAction,placingOnStack,owner,game){
-        if (stackAction.type == "SUMMON" && stackAction.card.id == this.parentID && placingOnStack == false){
+    trigger(stackAction,stackStatus,owner,game){
+        if (stackAction.type == "SUMMON" && stackAction.card.id == this.parentID && stackStatus == "Resolved"){
             // if the event should trigger it returns any stored data it wants to keep, which it will get back on the execute phase. 
-            //console.log(stackAction.type,' !triggers! this event',placingOnStack,stackAction.card.id,parentID )
+            //console.log(stackAction.type,' !triggers! this event',stackStatus,stackAction.card.id,parentID )
             return {stackAction: stackAction, player:owner};
         }
-        //console.log(stackAction.type,'does not trigger this event',placingOnStack,stackAction.card.id,parentID )
+        //console.log(stackAction.type,'does not trigger this event',stackStatus,stackAction.card.id,parentID )
         return null;
     }
     execute(savedData,game){

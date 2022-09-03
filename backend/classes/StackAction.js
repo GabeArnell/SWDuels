@@ -2,10 +2,12 @@
 
 module.exports.StackAction = class StackAction{
     
-    constructor(build={}){
+    constructor(id,build={}){
+        this.id = id
         this.type = build.type;
         this.owner = build.owner;
-        this.chainedToTop = build.chainedToTop || false; // if a stack action is chained to the stack action on top of it it completes immediatly without opportunities for events or swift crap
+        this.chained = build.chained || false; // if a stack action is chained to the stack action on top of it it completes immediatly without opportunities for events or swift crap
+        this.preresolvePrompt = null;
         switch(this.type){
             case("MOVEENTITY"):
                 this.startingRow = build.startingRow;
@@ -27,6 +29,12 @@ module.exports.StackAction = class StackAction{
                 this.card = build.card;
                 this.ability = build.ability;
                 this.savedData = build.savedData;
+                if (this.savedData.targetCard){
+                    this.targetCard = this.savedData.targetCard
+                }
+                if (this.ability.preresolvePrompt){
+                    this.preresolvePrompt = this.ability.preresolvePrompt
+                }
                 break;
             case("DEATH"):
                 // Death is a triggered event but does not go on stack or actually get resolved
@@ -38,22 +46,22 @@ module.exports.StackAction = class StackAction{
         }
     }
 
-    resolve(game){
+    resolve(game,promptResponse=null){
         switch(this.type){
             case("SUMMON"):
-                game.summonEntity(this);
+                game.summonEntity(this,promptResponse);
                 break;
             case("MOVEENTITY"):
-                game.moveEntity(this)
+                game.moveEntity(this,promptResponse)
                 break;
             case("ATTACK"):
-                game.attackEntity(this);
+                game.attackEntity(this,promptResponse);
                 break;
             case("EVOCATION"):
-                game.resolveSpell(this)
+                game.resolveSpell(this,promptResponse)
                 break;
             case("EVENT"):
-                game.resolveEvent(this);
+                game.resolveEvent(this,promptResponse);
                 break;
         }
     }
@@ -62,6 +70,8 @@ module.exports.StackAction = class StackAction{
         let res =  {
             type: this.type,
             owner: true, // player is the owner of this object
+            chained: this.chained,
+            id: this.id,
         }
         switch(this.type){
             case("MOVEENTITY"):
@@ -85,6 +95,9 @@ module.exports.StackAction = class StackAction{
             case("EVENT"):
                 if (this.card){
                     res.card = this.card.data();
+                }
+                if (this.targetCard){
+                    res.targetCard = this.targetCard.data();
                 }
                 if (this.ability){
                     res.data = this.ability.data();

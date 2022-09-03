@@ -119,7 +119,7 @@ module.exports.Board_Card = class Board_Card{
     // searches abilities for the keyword
     hasKeyWord(keyword){
         for (let ability of this.abilities){
-            if (ability.keyword == keyword){
+            if (ability.keyword.toLowerCase() == keyword.toLowerCase()){
                 return true;
             }
         }
@@ -161,7 +161,9 @@ module.exports.Board_Card = class Board_Card{
         if (successfulRemoval){
             let owner = this.owner;
             owner.sendBoardToGrave(this);
-            let stackAction = new StackAction({ //used as a stack action for purpose of triggering death, does not actually go on stack
+            let stackAction = new StackAction(
+            game.nextStackActionID++,    
+            { //used as a stack action for purpose of triggering death, does not actually go on stack
                 type:"DEATH",
                 card: this,
             })

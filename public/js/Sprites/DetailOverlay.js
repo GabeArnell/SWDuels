@@ -252,7 +252,6 @@ class DetailOverLay extends Sprite {
     }
     addPointer(cardID) {
         if (!this.cardPointers.includes(cardID)) {
-            console.log("Pointered added: ", cardID);
             this.cardPointers.push(cardID);
             this.visible = true;
         }

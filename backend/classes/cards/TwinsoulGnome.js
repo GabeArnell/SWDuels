@@ -39,13 +39,13 @@ module.exports.TwinsoulGnome_Call_Ability = class TwinsoulGnome_Call_Ability {
         }
     }
 
-    trigger(stackAction,placingOnStack,owner,game){
-        if (stackAction.type == "SUMMON" && stackAction.card.id == this.parentID && placingOnStack == false){
+    trigger(stackAction,stackStatus,owner,game){
+        if (stackAction.type == "SUMMON" && stackAction.card.id == this.parentID && stackStatus == "Resolved"){
             // if the event should trigger it returns any stored data it wants to keep, which it will get back on the execute phase. 
-            //console.log(stackAction.type,' !triggers! this event',placingOnStack,stackAction.card.id,parentID )
+            //console.log(stackAction.type,' !triggers! this event',stackStatus,stackAction.card.id,parentID )
             return {stackAction: stackAction, player:owner};
         }
-        //console.log(stackAction.type,'does not trigger this event',placingOnStack,stackAction.card.id,parentID )
+        //console.log(stackAction.type,'does not trigger this event',stackStatus,stackAction.card.id,parentID )
         return null;
     }
     execute(savedData,game){

@@ -16,11 +16,6 @@ module.exports.Zone_Card = class ShatteredSeeker_Zone extends Zone_Card{
     constructor(data={},Board_Card = null){
         super(module.exports.stats,data,module.exports.Board_Card,Board_Card);
         
-        let parentID = this.id;
-        this.abilities = [
-            
-
-        ]
     }
     calcTargetRequirements(){
         let targetList = [

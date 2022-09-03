@@ -33,4 +33,5 @@ const SETTINGS = {
     CARD_SELECT_FRAME: "/images/CardSelect.png",
     CARD_HOVER_SELECT_FRAME: "/images/CardHoverSelect.png",
     EXHAUSTED_TEXTURE: "/images/exhausted.png",
+    STACK_CHAIN_TEXTURE: "/images/chain.png",
 }

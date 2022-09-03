@@ -9,7 +9,7 @@ module.exports.Ability = class Agile_Ability{
         }
     }
 
-    trigger(stackAction,placingOnStack,owner,game){
+    trigger(stackAction,stackStatus,owner,game){
         return null;
     }
     execute(savedData,game){

@@ -41,13 +41,13 @@ module.exports.Broken_Seeker_Ability = class Broken_Seeker_Ability{
         }
     }
 
-    trigger(stackAction,placingOnStack,owner,game){
-        if (stackAction.type == "DEATH" && stackAction.card.id == this.parentID && placingOnStack == false){
+    trigger(stackAction,stackStatus,owner,game){
+        if (stackAction.type == "DEATH" && stackAction.card.id == this.parentID && stackStatus == "Resolved"){
             // if the event should trigger it returns any stored data it wants to keep, which it will get back on the execute phase. 
-            console.log(stackAction.type,' !triggers! this event',placingOnStack,stackAction.card.id,this.parentID )
+            console.log(stackAction.type,' !triggers! this event',stackStatus,stackAction.card.id,this.parentID )
             return {stackAction: stackAction, player:owner};
         }
-        console.log(stackAction.type,'does not trigger this event',placingOnStack,stackAction.card.id,this.parentID )
+        console.log(stackAction.type,'does not trigger this event',stackStatus,stackAction.card.id,this.parentID )
         return null;
 }
     execute(savedData,game){
@@ -59,6 +59,7 @@ module.exports.Broken_Seeker_Ability = class Broken_Seeker_Ability{
         let resData = {
             name: "Shattered Seeker Death",
             text: "Death: Draw a Card",
+            image: "death",
             keyword: this.keyword
         }
         return resData;

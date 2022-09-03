@@ -28,6 +28,7 @@ module.exports.Game = class Game{
     waiting = null;
     totalActions=0;
     nextCardID = 1;
+    nextStackActionID = 1;
     passes = 0; // how many passes have already occured
 
     constructor(id, playerIDs){
@@ -46,7 +47,9 @@ module.exports.Game = class Game{
         this.turn = 0;
         this.winner = null;
         this.priority = 0// Math.random() > .5?0:1 // sets to 0 or 1
-        this.waiting = "MULLIGAN"
+        this.waiting = "MULLIGAN";
+
+        this.prompt = null;
 
 
         // Creating players
@@ -69,6 +72,17 @@ module.exports.Game = class Game{
 
     log(text){
         this.gameLog.push(text)
+    }
+
+    setPrompt(text,responses,playerID,savedData,callback){
+        this.waiting = "PROMPT";
+        this.prompt = {
+            text: text,
+            responses: responses,
+            player: playerID,
+            callback: callback,
+            savedData: savedData
+        }
     }
 
     nextTurn(){
@@ -126,9 +140,18 @@ module.exports.Game = class Game{
             turn: this.turn,
             waiting: this.waiting,
             totalActions: this.totalActions,
-            priority: false // if the player has priority or not, boolean instead of ID
+            priority: false, // if the player has priority or not, boolean instead of ID
+            prompt:null,
         }
         
+        // getting prompt
+        if (this.prompt && this.prompt.player == playerID){
+            resData.prompt = {
+                text: this.prompt.text,
+                responses: this.prompt.responses
+            }
+            resData.priority = true;// technically not with priority but they do need to make a choice so its all the same to the client
+        }
 
         // getting data of stack actions
         for (let stackAction of this.stack){
@@ -167,8 +190,14 @@ module.exports.Game = class Game{
                 //console.log('found player')
             }
         }
-        if (!player || this.playerList[this.priority].id != player.id || this.waiting != bodyData.data.type){ // must be the action the game is waiting for as well as the player who is being waited on
+        if (!player || this.waiting != bodyData.data.type){ // must be the action the game is waiting for as well as the player who is being waited on
             console.log('kicked',this.waiting, bodyData.type)
+            res.send({
+                status: "failure"
+            });
+            return;  
+        }
+        if (this.playerList[this.priority].id != player.id && (!this.prompt || this.prompt.player != playerID)){
             res.send({
                 status: "failure"
             });
@@ -190,6 +219,7 @@ module.exports.Game = class Game{
                     this.nextTurn();
                 }
                 break;
+            case("PROMPT"):
             case("ACTION"):
                 let actionData = bodyData.data.data;
 
@@ -200,8 +230,8 @@ module.exports.Game = class Game{
                         status: "failure"
                     });
                     return; 
-                } 
-
+                }
+                break;
                 break;
         }
 
@@ -288,6 +318,10 @@ module.exports.Game = class Game{
                     console.log('no card')
                     return false;
                 }
+                if (!card.hasKeyWord("AGILE")){
+                    console.log('card does not have agile')
+                    return false;
+                }
                 cardResults = this.board.getCard(actionData.defender)
                 targetCard = cardResults[0]
                 if (!targetCard){
@@ -316,6 +350,10 @@ module.exports.Game = class Game{
                     console.log('no card')
                     return false;
                 }
+                if (!card.hasKeyWord("AGILE")){
+                    console.log('card does not have agile')
+                    return false;
+                }
                 cardResults = this.board.getCard(actionData.defender)
                 targetCard = cardResults[0]
                 if (!targetCard){
@@ -335,12 +373,25 @@ module.exports.Game = class Game{
                     this.eventPool = []; // This may cause bugs. reset the event pool from any attack shit the above action may have caused. 
                 }
                 break
+            case("PROMPT"):
+            case("PROMPT"):
+                let promptResponse = actionData.data
+                if (this.prompt){
+                    this.waiting = "ACTION" // reset back to action
+                    this.resolveStackAction(promptResponse);
+                }else{
+                    return false;
+                }
+
+
+                this.passes = 0;
+                actionResult = true;
+                break;
             case("PASS"):
                 this.passes+=1;
                 this.log(`Player passes priority.`)
 
                 console.log("Checking state based actions");
-
 
                 // if the actionWasCaused, break
                 // checking state based actions
@@ -348,11 +399,11 @@ module.exports.Game = class Game{
                 let loopLimit = 0;
                 // if stateebased crap occured, then we need to check if the event pool had anything, and add it to stack if so
                 while (actionWasCaused && loopLimit < 100){
-                    this.checkForEvents();
+                    this.pushEventsOnStack();
                     actionWasCaused=this.checkStateActions();
                     loopLimit++;
                 }
-
+                
                 // After passing, priority transfers
                 this.priority++;
                 if (this.priority > this.playerList.length-1){ 
@@ -366,11 +417,15 @@ module.exports.Game = class Game{
                         console.log("Going to resolve stack action");
                         this.passes = 0;
                         this.resolveStackAction();
+                        // check for prompt. if prompt exists, return true and dont push events onto the stack
+                        if (this.prompt){
+                            return true;
+                        }
                     }else{
                         console.log("Going to new turn");
                         this.nextTurn()
                     }
-                    actionResult=  true;
+                    actionResult = true;
                 }else{
                     // character has passed and priority passes to the next character
                     actionResult=  true;
@@ -379,18 +434,19 @@ module.exports.Game = class Game{
         // Check the event pool to see if anything still exists, if so, put it onto the stack. Then repeat until nothing is in event pool 
         // events have been added here after stuff has beene triggered
         if (actionResult){ // only check for events if it was a valid action
-            this.checkForEvents();
+            this.pushEventsOnStack();
         }
         return actionResult;
     }
 
-    checkForEvents(){
+    pushEventsOnStack(){
+        let game = this;
         if (this.eventPool.length > 0){
             console.log('checking events')
             // check here to see if we need to make a decision on what goes first, otherwise send them off
             let theStack = this.stack
             function filterEvents(event){
-                let newAction = new StackAction(event);
+                let newAction = new StackAction( game.nextStackActionID++, event);
                 theStack.push(newAction);
                 return false;
             }
@@ -426,7 +482,8 @@ module.exports.Game = class Game{
                 player.spentDivineConnection+= card.data().cost;
 
                 // remove card from hand and place it on the stack
-                stackAction = new StackAction({
+                stackAction = new StackAction(this.nextStackActionID++,
+                    {
                     type: "SUMMON",
                     card: card,
                     owner: player,
@@ -438,7 +495,7 @@ module.exports.Game = class Game{
                 this.log(`Player casts ${card.name}, placing its summon onto the stack..`)
 
                 // check if this generates any casting events, if so throw it into the pool
-                this.checkEvents(stackAction,true)
+                this.checkEvents(stackAction,"Added")
 
                 return true;
                 break;
@@ -462,7 +519,7 @@ module.exports.Game = class Game{
                 player.spentDivineConnection+= card.data().cost;
 
                 // remove card from hand and place it on the stack
-                stackAction = new StackAction({
+                stackAction = new StackAction(this.nextStackActionID++,{
                     type: "EVOCATION",
                     card: card,
                     owner: player,
@@ -480,7 +537,7 @@ module.exports.Game = class Game{
                 this.log(`Player casts ${card.name}, placing its spell onto the stack..`)
 
                 // check if this generates any casting events, if so throw it into the pool
-                this.checkEvents(stackAction,true)
+                this.checkEvents(stackAction,"Added")
 
                 return true;
 
@@ -492,7 +549,6 @@ module.exports.Game = class Game{
         }
 
     }
-
 
 
     // Spend action to move an entity to a different zone
@@ -530,16 +586,16 @@ module.exports.Game = class Game{
         }
 
 
-        let stackAction = new StackAction({
+        let stackAction = new StackAction(this.nextStackActionID++,{
             type: "MOVEENTITY",
             card: card,
             owner: player,
             row: row,
             startingRow: startingRow,
-            chainedToTop: false,
+            chained: false,
         })
         if (actionData.actiontype == "AGILEMOVE"){ // dont exhaust the user on agile movement, otherwise the attack will fail. The attack will exhaust it for both reasons
-            stackAction.chainedToTop = true;
+            stackAction.chained = true;
         }
 
         this.stack.push(stackAction);
@@ -547,7 +603,7 @@ module.exports.Game = class Game{
         this.log(`Player goes to move ${card.name} to zone ${row+1}.`)
 
         // Check events for character moving here, throw into pool if so
-
+        this.checkEvents(stackAction,"Added")
         return true;
     }
 
@@ -589,24 +645,24 @@ module.exports.Game = class Game{
             card.addExhaust("Moved",card.id,1)
         }
 
-        let stackAction = new StackAction({
+        let stackAction = new StackAction(this.nextStackActionID++,{
             type: "ATTACK",
             owner: player,
             card: card,
             targetCard: targetCard,
             row: cardRow,
             targetRow: targetRow,
-            chainedToTop: false,
+            chained: false,
         })
         if (actionData.actiontype=="AGILEATTACK"){ // ensures that attack viability is being counted from their moved position
-            stackAction.chainedToTop = true;
+            stackAction.chained = true;
         }
         
         this.stack.push(stackAction);
 
         this.log(`Player goes to move ${card.name} to zone ${cardRow+1}.`)
         // Check events for card attacking targetcard, throw into pool if so
-        this.checkEvents(stackAction,true)
+        this.checkEvents(stackAction,"Added")
         return true;
     }
 
@@ -676,20 +732,43 @@ module.exports.Game = class Game{
         return true;
     }
 
+    // if this is resolving from prompt we can assume that all stuff that triggered before it already happened.
+    //  dont look to re-prompt or check for prompt again
+    resolveStackAction(promptResponse=null){
+        let topAction = this.stack[this.stack.length-1];
 
-    resolveStackAction(){
-        let topAction = this.stack.pop();
-        topAction.resolve(this);
-        while (this.stack.length > 0 && this.stack[this.stack.length-1].chainedToTop){
-            topAction=this.stack.pop();
-            topAction.resolve(this);
+        // checking if topAction about to resolve triggers any events
+        if (!promptResponse){
+
+            let currentEventList = this.eventPool.length;
+            this.checkEvents(topAction,"Popping")
+            if (this.eventPool.length > currentEventList){
+                // An event triggered that needs to be resolved before this occurs
+                console.log('event was triggered')
+                return;
+            }
+
+            // check if the action has a callback, if so run the callback but do not execute it?
+            if (topAction.preresolvePrompt){
+                let needsToPause = topAction.preresolvePrompt(topAction.savedData,this);
+                if (needsToPause){
+                    return;
+                }
+            }
         }
+
+        this.stack.pop();
+        topAction.resolve(this,promptResponse);
+        if (this.stack.length > 0  && this.stack[this.stack.length-1].chained){
+            this.resolveStackAction();
+        }
+
     }
 
 
     resolveSpell(stackAction){
         stackAction.card.execute(this,stackAction);
-        this.checkEvents(stackAction,false) 
+        this.checkEvents(stackAction,"Resolved") 
     }
 
     attackEntity(stackAction){
@@ -760,7 +839,7 @@ module.exports.Game = class Game{
         
         this.board.moveCard(boardCardResults[0],stackAction.row)
         // trigger after movement crap
-        this.checkEvents(stackAction,false)
+        this.checkEvents(stackAction,"Resolved")
     }
 
     summonEntity(stackAction){
@@ -771,7 +850,7 @@ module.exports.Game = class Game{
         boardCard.addExhaust("Summoned",boardCard.owner.id,1)
         this.board.addEntity(boardCard,stackAction.row)
         // trigger calls/etb triggers
-        this.checkEvents(stackAction,false)
+        this.checkEvents(stackAction,"Resolved")
     }
     copyBoardCard(originalCard,owner){
         const newID = this.nextCardID++;
@@ -811,16 +890,16 @@ module.exports.Game = class Game{
     placeCreatedBoardCard(newCard,row){
         this.board.addEntity(newCard,row)
         // trigger etc and create triggers
-        let stackAction = new StackAction({ //used as a stack action for purpose of triggering death, does not actually go on stack
+        let stackAction = new StackAction(this.nextStackActionID++,{ //used as a stack action for purpose of triggering death, does not actually go on stack
             type:"CREATE",
             card: newCard,
         })
         newCard.addExhaust("Copied",newCard.owner.id,1)
-        this.checkEvents( stackAction,false)
+        this.checkEvents( stackAction,"Resolved")
     }
 
 
-    checkEvents(stackAction,placingOnStack){
+    checkEvents(stackAction,stackStatus){
         console.log('checking events for',stackAction.type)
         let foundCard = false;
         for (let player of this.playerList){
@@ -832,7 +911,7 @@ module.exports.Game = class Game{
                 //console.log(card)
                 for (let ability of card.abilities){
                     console.log('checking ability of player card')
-                    let returnData = ability.trigger(stackAction,placingOnStack,player,this);
+                    let returnData = ability.trigger(stackAction,stackStatus,player,this);
                     if (returnData != null){
                         console.log('event triggered')
                         this.eventPool.push({
@@ -851,7 +930,7 @@ module.exports.Game = class Game{
                 foundCard = true;
             }
             for (let ability of card.abilities){
-                let returnData = ability.trigger(stackAction,placingOnStack,card.owner,this);
+                let returnData = ability.trigger(stackAction,stackStatus,card.owner,this);
                 if (returnData){
                     this.eventPool.push({
                         type: "EVENT",
@@ -865,7 +944,7 @@ module.exports.Game = class Game{
         }
         if (!foundCard){
             for (let ability of stackAction.card.abilities){
-                let returnData = ability.trigger(stackAction,placingOnStack,stackAction.card.owner,this);
+                let returnData = ability.trigger(stackAction,stackStatus,stackAction.card.owner,this);
                 if (returnData){
                     this.eventPool.push({
                         type: "EVENT",
@@ -881,9 +960,9 @@ module.exports.Game = class Game{
         // Sorting events by Active Player first(?) then nonactive people 
     }
 
-    resolveEvent(stackAction){
+    resolveEvent(stackAction,promptResponse=null){
         let ability = stackAction.ability;
-        ability.execute(stackAction.savedData,this)
+        ability.execute(stackAction.savedData,this,promptResponse)
     }
 
     checkStateActions(){

@@ -75,11 +75,11 @@ class Game {
     }
     getPriority() {
         console.log('checking priority data');
+        let clicked = false;
         switch (this.viewData.waiting) {
             case ("MULLIGAN"):
                 // add mulligan option
                 console.log('running mull question');
-                let clicked = false;
                 this.myPrompt.askQuestion({
                     prompt: "Mulligan the hand?",
                     responses: ["Yes", "No"],
@@ -108,6 +108,26 @@ class Game {
                 this.myPassButton.visible = true;
                 this.myPassButton.clicked = false;
                 this.state = "ACTION";
+                break;
+            case ("PROMPT"):
+                let promptData = this.viewData.prompt;
+                console.log('running prompt question');
+                this.myPrompt.askQuestion({
+                    prompt: promptData.text,
+                    responses: promptData.responses,
+                    callback: (response) => {
+                        if (!clicked && this.viewData.waiting == "PROMPT") {
+                            clicked = true;
+                            this.sendPlayerAction({
+                                type: "PROMPT",
+                                data: {
+                                    actiontype: "PROMPT",
+                                    data: response
+                                }
+                            });
+                        }
+                    }
+                });
                 break;
         }
     }

@@ -167,6 +167,10 @@ class StackAction extends Sprite {
 
         }
 
+        if (this.data.chained){
+            let chainTexture = await this.getImage(SETTINGS.STACK_CHAIN_TEXTURE);
+            ctx.drawImage(chainTexture,this.x,this.y-70,50,100)
+        }
 
         if (this.stopHovering){
             

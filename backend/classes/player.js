@@ -40,7 +40,7 @@ module.exports.Player = class Player{
                     owner: this
                 });
             }else{
-                card = new gnomeModule.Zone_Card({
+                card = new figmentModule.Zone_Card({
                     id: this.game.nextCardID++,
                     owner: this
                 });
