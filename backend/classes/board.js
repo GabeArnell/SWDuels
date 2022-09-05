@@ -8,8 +8,9 @@ module.exports.Board = class Board {
 
     matrix = null;
 
-    constructor(){
-        this.matrix = []    
+    constructor(game){
+        this.matrix = []  
+        this.gameParent = game  
         for (let i = 0; i < 5; i++){
             this.matrix.push({
                 cards: []
@@ -46,7 +47,7 @@ module.exports.Board = class Board {
         let i = 0;
         for (let row of this.matrix){
             for (let c of row.cards){
-                if (c.data().id == cardID){
+                if (c.data(this.gameParent).id == cardID){
                     card = c;
                     foundRow = i;
                 }
@@ -69,8 +70,9 @@ module.exports.Board = class Board {
 
 
     moveCard(card,newRow){
+        let game = this.gameParent
         function filter(testCard){
-            if (testCard.data().id == card.data().id){
+            if (testCard.data(game).id == card.data(game).id){
                 return false;
             }
             return true;
@@ -84,9 +86,10 @@ module.exports.Board = class Board {
     }
 
     removeCard(card){
+        let game = this.gameParent
         let didRemove = false;
         function filter(testCard){
-            if (testCard.data().id == card.data().id){
+            if (testCard.data(game).id == card.data(game).id){
                 didRemove = true;
                 return false;
             }

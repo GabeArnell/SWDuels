@@ -3,6 +3,7 @@ const {Board_Card} = require("../board_card")
 
 const Agile_AbilityClass = require("../abilities/Agile").Ability;
 const Surge_AbilityClass = require("../abilities/Surge").Ability;
+const {Ability_Class} = require("../ability")
 
 module.exports.stats = {
     name: "Twinsoul Gnome",
@@ -11,7 +12,7 @@ module.exports.stats = {
     health: 2,
     cost: 1,
     type: "Entity",
-    tribes: ["Fae"],
+    tribes: ["Fae"]
 }
 
 module.exports.Zone_Card = class TwinsoulGnome_Zone extends Zone_Card{
@@ -28,9 +29,10 @@ module.exports.Board_Card = class TwinsoulGnome_Board extends Board_Card{
         console.log("my abilities",this.abilities)
     }
 }
-module.exports.TwinsoulGnome_Call_Ability = class TwinsoulGnome_Call_Ability {
+module.exports.TwinsoulGnome_Call_Ability = class TwinsoulGnome_Call_Ability extends Ability_Class {
     keyword = null;
     constructor(cardParent,copy=null){
+        super()
         this.class = module.exports.TwinsoulGnome_Call_Ability;
         this.keyword = "CALL";
         this.parentID = cardParent.id;

@@ -7,6 +7,7 @@ class StackAction extends Sprite {
         this.card = null;
         this.targetCard = null;
         this.targets = null;
+        this.hitObj = null;
         this.parent = parent;
         this.data = actionData;
         this.stopHovering = false;
@@ -32,6 +33,9 @@ class StackAction extends Sprite {
                 this.targets.push(cardSprite);
             }
             this.card.y = this.parent.y + (SETTINGS.CARDY / 2) + SETTINGS.ROWBUFFER;
+        }
+        if (actionData.hitObj) {
+            this.hitObj = actionData.hitObj;
         }
     }
     canHover(mouse) {
@@ -89,6 +93,22 @@ class StackAction extends Sprite {
                     }
                     texture = await this.getImage(SETTINGS.FIGHT_TEXTURE);
                     ctx.drawImage(texture, this.parent.x - 25 - SETTINGS.CARDX, this.y - (50), 100, 100);
+                }
+                break;
+            case ("DAMAGE"):
+                ctx.font = "bold 20px Arial";
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                let text = `${this.hitObj.value} Damage to ${this.data.card.name}`;
+                ctx.fillText(text, this.x + this.width / 2, this.y + this.height / 2);
+                ctx.strokeStyle = "black";
+                ctx.strokeText(text, this.x + this.width / 2, this.y + this.height / 2);
+                if (this.hovering) {
+                    // popping up the card
+                    if (this.card) {
+                        await this.card.render(ctx, mouse, renderZ);
+                        this.parent.gameParent.detailOverlay.addPointer(this.card.cardData.id);
+                    }
                 }
                 break;
             case ("EVOCATION"):

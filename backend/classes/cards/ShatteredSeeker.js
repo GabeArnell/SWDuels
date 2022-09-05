@@ -1,5 +1,6 @@
 const {Zone_Card} = require("../zone_card")
 const {Board_Card} = require("../board_card")
+const {Ability_Class} = require("../ability")
 
 module.exports.stats = {
     name: "Shattered Seeker",
@@ -30,9 +31,10 @@ module.exports.Board_Card = class ShatteredSeeker_Board extends Board_Card{
     }
 }
 
-module.exports.Broken_Seeker_Ability = class Broken_Seeker_Ability{
+module.exports.Broken_Seeker_Ability = class Broken_Seeker_Ability extends Ability_Class{
     keyword = null;
     constructor(cardParent,copy=null){
+        super()
         this.keyword = "DEATH";
         this.class = module.exports.Broken_Seeker_Ability
         this.parentID = cardParent.id;

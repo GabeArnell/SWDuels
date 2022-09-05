@@ -159,7 +159,7 @@ class DetailOverLay extends Sprite{
             this.calcPossibleTargets(this.gameParent.getAllCards(),this.targetingSession.targets[this.targetingSession.index])
         }
     }
-
+    
     // goes through all the given cards, matches it to requiremeents. if it has
     calcPossibleTargets(cards:CardSprite[],targetRequirement){
         this.possibleTargets = [];

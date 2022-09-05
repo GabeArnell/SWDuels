@@ -1,6 +1,11 @@
-module.exports.Ability = class Agile_Ability{
+const {Ability_Class} = require("../ability")
+
+
+module.exports.Ability = class Agile_Ability extends Ability_Class{
     keyword = null;
     constructor(cardParent,copy=null){
+        super()
+
         this.keyword = "SURGE";
         this.class = module.exports.Ability;
         this.parentID = cardParent.id;

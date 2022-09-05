@@ -43,7 +43,7 @@ module.exports.Game = class Game{
         this.passes = 0;
         this.gameLog = [];
 
-        this.board = new Board()
+        this.board = new Board(this)
         this.turn = 0;
         this.winner = null;
         this.priority = 0// Math.random() > .5?0:1 // sets to 0 or 1
@@ -76,6 +76,7 @@ module.exports.Game = class Game{
 
     setPrompt(text,responses,playerID,savedData,callback){
         this.waiting = "PROMPT";
+        console.log('prompt!')
         this.prompt = {
             text: text,
             responses: responses,
@@ -146,11 +147,14 @@ module.exports.Game = class Game{
         
         // getting prompt
         if (this.prompt && this.prompt.player == playerID){
+            console.log('display prompt for',playerID)
             resData.prompt = {
                 text: this.prompt.text,
                 responses: this.prompt.responses
             }
             resData.priority = true;// technically not with priority but they do need to make a choice so its all the same to the client
+        }else{
+            console.log('no prompt displayed',playerID)
         }
 
         // getting data of stack actions
@@ -179,6 +183,14 @@ module.exports.Game = class Game{
         return resData;
     }
 
+    getPlayer(playerName){
+        for (let player of this.playerList){
+            if (player.name == playerName){
+                return player;
+            }
+        }
+        return null;
+    }
 
     playerAction(req,res,bodyData){
         let originalPlayerID = req.body.player
@@ -276,7 +288,7 @@ module.exports.Game = class Game{
             case("PLAYCARD"):
                 this.passes = 0;// reseting pass count. Anything that isnt the PASS actiontype should reset this
                 for (let c of player.hand){
-                    if (c.data().id == actionData.card){
+                    if (c.data(this).id == actionData.card){
                         card = c;
                         actionData['index'] = index
                     }
@@ -446,7 +458,7 @@ module.exports.Game = class Game{
             // check here to see if we need to make a decision on what goes first, otherwise send them off
             let theStack = this.stack
             function filterEvents(event){
-                let newAction = new StackAction( game.nextStackActionID++, event);
+                let newAction = new StackAction( game, event);
                 theStack.push(newAction);
                 return false;
             }
@@ -462,7 +474,7 @@ module.exports.Game = class Game{
         let row = null;
         let stackAction = null;
         let targetFailures = null;
-        switch(card.data().type[0]){
+        switch(card.data(this).type[0]){
             case("Entity"):
                 if (actionData.row == null){
                     return false;
@@ -473,16 +485,16 @@ module.exports.Game = class Game{
                     return false;
                 }
                 // checking if can be casted
-                if (player.getDivineConnection(this) < card.data().cost){
-                    console.log('not enough energy',player.getDivineConnection(this), card.data().cost)
+                if (player.getDivineConnection(this) < card.data(this).cost){
+                    console.log('not enough energy',player.getDivineConnection(this), card.data(this).cost)
                     return false;
                 }
 
                 // Increase spent energy
-                player.spentDivineConnection+= card.data().cost;
+                player.spentDivineConnection+= card.data(this).cost;
 
                 // remove card from hand and place it on the stack
-                stackAction = new StackAction(this.nextStackActionID++,
+                stackAction = new StackAction(this,
                     {
                     type: "SUMMON",
                     card: card,
@@ -501,8 +513,8 @@ module.exports.Game = class Game{
                 break;
             case("Evocation"):
                 // checking if can be casted
-                if (player.getDivineConnection(this) < card.data().cost){
-                    console.log('not enough energy',player.getDivineConnection(this), card.data().cost)
+                if (player.getDivineConnection(this) < card.data(this).cost){
+                    console.log('not enough energy',player.getDivineConnection(this), card.data(this).cost)
                     return false;
                 }
 
@@ -516,10 +528,10 @@ module.exports.Game = class Game{
                     return false;
                 }
                 // Increase spent energy
-                player.spentDivineConnection+= card.data().cost;
+                player.spentDivineConnection+= card.data(this).cost;
 
                 // remove card from hand and place it on the stack
-                stackAction = new StackAction(this.nextStackActionID++,{
+                stackAction = new StackAction(this,{
                     type: "EVOCATION",
                     card: card,
                     owner: player,
@@ -562,7 +574,7 @@ module.exports.Game = class Game{
             console.log('invalid row', row)
             return false;
         }
-        if (!card.data().type.includes('Entity') && !card.data().type.includes('Player')){
+        if (!card.data(this).type.includes('Entity') && !card.data(this).type.includes('Player')){
             console.log("Tried to move card that was not an entity.")
             return false;
         }
@@ -576,7 +588,7 @@ module.exports.Game = class Game{
             return false;
         }
 
-        if (card.data().exhausted){
+        if (card.data(this).exhausted){
             console.log('cant move exhausted card')
             return;
         }
@@ -586,7 +598,7 @@ module.exports.Game = class Game{
         }
 
 
-        let stackAction = new StackAction(this.nextStackActionID++,{
+        let stackAction = new StackAction(this,{
             type: "MOVEENTITY",
             card: card,
             owner: player,
@@ -609,11 +621,11 @@ module.exports.Game = class Game{
 
     // spend action to attack an entity (in same zone typically)
     putAttackOnStack(player,card,targetCard,actionData){
-        if (!card.data().type.includes('Entity')){
+        if (!card.data(this).type.includes('Entity')){
             console.log("Tried to attack with card that was not an entity.")
             return false;
         }
-        if (!targetCard.data().type.includes('Entity') && !targetCard.data().type.includes('Player')){
+        if (!targetCard.data(this).type.includes('Entity') && !targetCard.data(this).type.includes('Player')){
             console.log("Tried to attack card that was not an entity.")
             return false;
         }
@@ -629,7 +641,7 @@ module.exports.Game = class Game{
             console.log("Tried to attack card that was out of range.")
             return false;
         }
-        if (card.data().exhausted){
+        if (card.data(this).exhausted){
             console.log('cant attack with exhausted card')
             return;
         }
@@ -645,7 +657,7 @@ module.exports.Game = class Game{
             card.addExhaust("Moved",card.id,1)
         }
 
-        let stackAction = new StackAction(this.nextStackActionID++,{
+        let stackAction = new StackAction(this,{
             type: "ATTACK",
             owner: player,
             card: card,
@@ -664,6 +676,16 @@ module.exports.Game = class Game{
         // Check events for card attacking targetcard, throw into pool if so
         this.checkEvents(stackAction,"Added")
         return true;
+    }
+
+    removeActionFromStack(stackActionID){
+        function filter(stackAction){
+            if (stackAction.id == stackActionID){
+                return false;
+            }
+            return true;
+        }
+        this.stack = this.stack.filter(filter);
     }
 
 
@@ -698,7 +720,7 @@ module.exports.Game = class Game{
         for (let key in targetData.requirements){
             switch(key){
                 case("type"):
-                    if (!targetCard[0].data().type.includes(targetData.requirements[key])){
+                    if (!targetCard[0].data(this).type.includes(targetData.requirements[key])){
                         console.log("denied due to type")
                         return false
                     }
@@ -750,8 +772,9 @@ module.exports.Game = class Game{
 
             // check if the action has a callback, if so run the callback but do not execute it?
             if (topAction.preresolvePrompt){
-                let needsToPause = topAction.preresolvePrompt(topAction.savedData,this);
+                let needsToPause = topAction.ability.preresolvePrompt(topAction.savedData,this);
                 if (needsToPause){
+                    console.log('I need to pause')
                     return;
                 }
             }
@@ -802,23 +825,60 @@ module.exports.Game = class Game{
             return false;
         }
         
-        if (card.data().attack < 1){
+        if (card.data(this).attack < 1){
             console.log("Attack fizzles due to less than 1 attack.")
             return;
         }
 
-        this.log(`${card.data().name} attacks ${targetCard.data().name}`)
+        this.log(`${card.data(this).name} attacks ${targetCard.data(this).name}`)
         card.addExhaust("Attacked",card.id,1)
-        card.attack(this,targetCard);
 
-        if (targetCard.data().type.includes("Entity")){
-            targetCard.attack(this,card);
+        let secondHitObj=null
+        if (targetCard.data(this).type.includes("Entity")){
+            secondHitObj = targetCard.attack(this,card);
         }
         console.log('attacks are done')
 
-        // trigger after movement crap
-        this.checkEvents(stackAction,false)
+        let firstHitObj = card.attack(this,targetCard);
 
+        if (secondHitObj){
+            let secondAttackAction = new StackAction(this,{
+                type:"DAMAGE",
+                card: card,
+                hitObj: secondHitObj,
+                eventProc: stackAction,
+                owner: this.getPlayer(targetCard.data(this).owner),
+                chained: true,
+            })    
+            this.stack.push(secondAttackAction)
+            let firstAttackAction = new StackAction(this,{
+                type:"DAMAGE",
+                card: targetCard,
+                hitObj: firstHitObj,
+                owner: this.getPlayer(card.data(this).owner),
+            })
+            this.stack.push(firstAttackAction)    
+        }else{
+            let firstAttackAction = new StackAction(this,{
+                type:"DAMAGE",
+                card: targetCard,
+                hitObj: firstHitObj,
+                owner: this.getPlayer(card.data(this).owner),
+                eventProc: stackAction,
+            })
+            this.stack.push(firstAttackAction)    
+        }
+    }
+
+    resolveDamage(stackAction){
+        let hitObj = stackAction.hitObj
+        let card = stackAction.card;
+        let source = hitObj.source
+        card.hurt(this,source,hitObj);
+        this.checkEvents(stackAction,"Resolved")
+        if (stackAction.eventProc){ // if there was an attack action that caused the damage, this triggers events from the attack resolving
+            this.checkEvents(stackAction.eventProc,"Resolved")
+        }
     }
 
     moveEntity(stackAction){
@@ -854,12 +914,12 @@ module.exports.Game = class Game{
     }
     copyBoardCard(originalCard,owner){
         const newID = this.nextCardID++;
-        const zoneClass = zoneCardMap.get(originalCard.data().name);
+        const zoneClass = zoneCardMap.get(originalCard.data(this).name);
         let zoneCard = new zoneClass({
             id: newID,
             owner: owner
         })
-        const boardClass = boardCardMap.get(originalCard.data().name)
+        const boardClass = boardCardMap.get(originalCard.data(this).name)
         let copiedCard = new boardClass(zoneCard)
         copiedCard.effects = [];
         for (let effect of originalCard.effects){
@@ -877,12 +937,12 @@ module.exports.Game = class Game{
 
     copyZoneCardAsBoard(originalCard,owner){
         let newID = this.nextCardID++;
-        let zoneClass = zoneCardMap.get(originalCard.data().name);
+        let zoneClass = zoneCardMap.get(originalCard.data(this).name);
         let zoneCard = new zoneClass({
             id: newID,
             owner: owner
         })
-        let boardClass = boardCardMap.get(originalCard.data().name)
+        let boardClass = boardCardMap.get(originalCard.data(this).name)
         let copiedCard = new boardClass(zoneCard)
         return copiedCard
     }
@@ -890,7 +950,7 @@ module.exports.Game = class Game{
     placeCreatedBoardCard(newCard,row){
         this.board.addEntity(newCard,row)
         // trigger etc and create triggers
-        let stackAction = new StackAction(this.nextStackActionID++,{ //used as a stack action for purpose of triggering death, does not actually go on stack
+        let stackAction = new StackAction(this,{ //used as a stack action for purpose of triggering death, does not actually go on stack
             type:"CREATE",
             card: newCard,
         })
@@ -900,7 +960,7 @@ module.exports.Game = class Game{
 
 
     checkEvents(stackAction,stackStatus){
-        console.log('checking events for',stackAction.type)
+       // console.log('checking events for',stackAction.type)
         let foundCard = false;
         for (let player of this.playerList){
             let cards = player.getAllCards();
@@ -910,10 +970,10 @@ module.exports.Game = class Game{
                 }
                 //console.log(card)
                 for (let ability of card.abilities){
-                    console.log('checking ability of player card')
+                    //console.log('checking ability of player card')
                     let returnData = ability.trigger(stackAction,stackStatus,player,this);
                     if (returnData != null){
-                        console.log('event triggered')
+                        console.log('event triggered', stackAction.type)
                         this.eventPool.push({
                             type: "EVENT",
                             owner: card.owner,
@@ -922,7 +982,7 @@ module.exports.Game = class Game{
                             savedData: returnData
                         })
                     }
-                }    
+                }   
             }
         }
         for (let card of this.board.getAllCards()){

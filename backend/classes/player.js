@@ -6,6 +6,7 @@ This manages a player entity, their zones of control (hand/deck/grave/banish) as
 const figmentModule = require("./cards/Figment")
 const gnomeModule = require("./cards/TwinsoulGnome")
 const quellModule = require("./cards/Quell")
+const Minesweeper_Module = require("./cards/Minesweeper")
 
 
 const player_cardModule = require("./cards/Player_Card")
@@ -34,20 +35,19 @@ module.exports.Player = class Player{
         // making the deck
         for (let i = 0; i < 10; i++){
             let card = null;
-            if (Math.random() > .5){
-                card = new quellModule.Zone_Card({
+            if (Math.random() > .5 || this.name=='Robot1'){
+                card = new figmentModule.Zone_Card({
                     id: this.game.nextCardID++,
                     owner: this
                 });
             }else{
-                card = new figmentModule.Zone_Card({
+                card = new Minesweeper_Module.Zone_Card({
                     id: this.game.nextCardID++,
                     owner: this
                 });
             }
             this.deck.push(card)
         }
-
         // Drawing starting 4 cards
         for (let i = 0; i < 4; i++){
             let topCard = this.deck.shift();
@@ -65,6 +65,7 @@ module.exports.Player = class Player{
     }
 
     data(game){
+        console.log('getting player data', this.name)
         let resData = {
             hand: [],
             deck: [], // note that this should be ordered
@@ -74,13 +75,13 @@ module.exports.Player = class Player{
             currentRow: this.game.board.getCard(this.playerCard.id)[1] // current row they are ein
         }
         for (let card of this.hand){
-            resData.hand.push(card.data())
+            resData.hand.push(card.data(game))
         }
         for (let card of this.deck){
-            resData.deck.push(card.data())
+            resData.deck.push(card.data(game))
         }
         for (let card of this.grave){
-            resData.grave.push(card.data())
+            resData.grave.push(card.data(game))
         }
         return(resData)
     }
@@ -131,6 +132,14 @@ module.exports.Player = class Player{
             owner: this,
             id: boardCard.id
         },boardCard)
+        this.grave.push(graveCard);
+    }
+    sendZoneToGrave(zoneCard){
+        let zoneClass = zoneCardMap.get(zoneCard.stats.name);
+        let graveCard = new zoneClass({
+            owner: this,
+            id: zoneCard.id
+        },null)
         this.grave.push(graveCard);
     }
 }

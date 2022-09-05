@@ -39,22 +39,28 @@ module.exports.Zone_Card = class ShatteredSeeker_Zone extends Zone_Card{
         let targetList = this.calcTargetRequirements();
         // first target is silenced and has abilities removed from stack if they are there
         if (game.validateSingleTarget(stackAction.owner,targetList[0],stackAction.targets[0].id,stackAction.targets)){
-            console.log(`Quelled ${stackAction.targets[0].data().name}`)
+            console.log(`Quelled ${stackAction.targets[0].data(game).name}`)
             function abilityFilter(ability){
-                console.log('removing ability',ability)
-                return false;
+                if (ability.isActive(game)){
+                    ability.setDelayTurn(game.turn+1)
+                }
+                return true;
             }
             stackAction.targets[0].abilities = stackAction.targets[0].abilities.filter(abilityFilter)
             // removing its ability events from stack
             function stackFilter(testAction){
-                if (testAction.card && testAction.card == stackAction.targets[0]){
+                if (testAction.card && testAction.card == stackAction.targets[0] && testAction.ability !=null){
                     return false;
                 }
                 return true;
             }
-            game.stack = game.stack.filter(stackFilter)
+            game.stack = game.stack.filter(stackFilter);
         }else{
             console.log("Quell fizzles ig")
+        }
+        // sending to grave of my owner ig
+        if (stackAction.card){
+            stackAction.owner.sendZoneToGrave(stackAction.card)
         }
     }
 }

@@ -99,7 +99,9 @@ module.exports.Board_Card = class Board_Card{
             }
         }
         for (let ability of this.abilities){
-            resData.abilities.push(ability.data())
+            if (ability.isActive(game)){
+                resData.abilities.push(ability.data(game));
+            }
         }
         return resData
     }
@@ -127,21 +129,21 @@ module.exports.Board_Card = class Board_Card{
     }
 
     attack(game,defender){
-        // deals damage equal to this cards attack to the defender
-        defender.hurt(game,this,{
-            source: this.id,
+        // returns attacking data. may vary based on defender
+        return {
+            source: this,
             value: (this.calcAttack())
-        })
+        }
     }
 
     hurt(game,attacker,hitObj){
-        game.log(`${attacker} deals ${hitObj.value} damage to ${this.data().name}`)
+        game.log(`${attacker} deals ${hitObj.value} damage to ${this.data(game).name}`)
         this.hits.push(hitObj)
     }
 
     checkState(game){
         // check death
-        if (this.data().health < 1){
+        if (this.data(game).health < 1){
             console.log('dying')
             this.die(game);
             return true;
@@ -162,7 +164,7 @@ module.exports.Board_Card = class Board_Card{
             let owner = this.owner;
             owner.sendBoardToGrave(this);
             let stackAction = new StackAction(
-            game.nextStackActionID++,    
+            game,    
             { //used as a stack action for purpose of triggering death, does not actually go on stack
                 type:"DEATH",
                 card: this,

@@ -1,6 +1,7 @@
 const {Zone_Card} = require("../zone_card")
 const {Board_Card} = require("../board_card")
-const SpellShieldAbilityClass = require("../abilities/SpellShield1").Ability;
+const Surge_AbilityClass = require("../abilities/Surge").Ability;
+const {Ability_Class} = require("../ability")
 
 module.exports.stats = {
     name: "Figment",
@@ -20,14 +21,15 @@ module.exports.Zone_Card = class Figment_Zone extends Zone_Card{
 module.exports.Board_Card = class Figment_Board extends Board_Card{
     constructor(Zone_Card){
         super(Zone_Card,module.exports.Zone_Card);
-        this.abilities.push(new module.exports.Figment_Ability(this))
-        this.abilities.push(new SpellShieldAbilityClass(this))
+        //this.abilities.push(new module.exports.Figment_Ability(this))
+        this.abilities.push(new Surge_AbilityClass(this))
     }
 }
 
-module.exports.Figment_Ability = class Figment_Call_Ability {
+module.exports.Figment_Ability = class Figment_Call_Ability extends Ability_Class {
     keyword = null;
     constructor(cardParent,copy=null){
+        super()
         this.keyword = "CALL";
         this.class = module.exports.Figment_Ability;
         this.parentID = cardParent.id;
