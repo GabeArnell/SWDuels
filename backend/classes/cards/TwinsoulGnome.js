@@ -4,6 +4,7 @@ const {Board_Card} = require("../board_card")
 const Agile_AbilityClass = require("../abilities/Agile").Ability;
 const Surge_AbilityClass = require("../abilities/Surge").Ability;
 const {Ability_Class} = require("../ability")
+const Swift_AbilityClass = require("../abilities/Swift").Ability;
 
 module.exports.stats = {
     name: "Twinsoul Gnome",
@@ -18,6 +19,7 @@ module.exports.stats = {
 module.exports.Zone_Card = class TwinsoulGnome_Zone extends Zone_Card{
     constructor(data={},Board_Card = null){
         super(module.exports.stats,data,module.exports.Board_Card,Board_Card);
+        this.abilities.push(new Swift_AbilityClass(this));
     }
 }
 module.exports.Board_Card = class TwinsoulGnome_Board extends Board_Card{

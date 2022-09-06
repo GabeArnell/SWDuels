@@ -18,9 +18,10 @@ class CanvasScreen {
         this.sprites.push(child);
     }
     async run() {
+        const wait = Math.ceil(1000 / this.FPS);
         this.runInterval = setInterval(() => {
             this.renderFrame();
-        }, 1 / this.FPS);
+        }, wait);
     }
     halt() {
         clearInterval(this.runInterval);

@@ -46,13 +46,28 @@ module.exports.Zone_Card = class Zone_Card{
             id: this.id,
             type: this.calcType(),
             owner: this.owner.name, // this should be a different owner ig
-
+            abilities: [],
             range: this.calcSpellRange(),
             targets: this.calcTargetRequirements(),
+        }
+        for (let ability of this.abilities){
+            if (ability.isActive(game)){
+                resData.abilities.push(ability.data(game));
+            }
         }
         
         return resData
     }
+    // searches abilities for the keyword
+    hasKeyWord(keyword){
+        for (let ability of this.abilities){
+            if (ability.keyword.toLowerCase() == keyword.toLowerCase()){
+                return true;
+            }
+        }
+        return false;
+    }
+    
     checkState(game){
         return false;
     }

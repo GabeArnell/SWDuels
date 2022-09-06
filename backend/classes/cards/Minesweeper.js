@@ -2,6 +2,7 @@ const {Zone_Card} = require("../zone_card")
 const {Board_Card} = require("../board_card")
 const {Ability_Class} = require("../ability")
 const Surge_AbilityClass = require("../abilities/Surge").Ability;
+
 const {StackAction} = require("../StackAction")
 module.exports.stats = {
     name: "Minesweeper",
@@ -51,8 +52,11 @@ module.exports.Minesweeper_Ability = class Minesweeper_Ability extends Ability_C
                 console.log('skipped damage')
                 return null;
             }
+            if (stackAction.hitObj.tags && stackAction.hitObj.tags.includes("minesweeper")){
+                return null;
+            }
             let targetCardBoard = game.board.getCard(stackAction.card.id)
-            let myCardBoard = game.board.getCard(parentID)
+            let myCardBoard = game.board.getCard(this.parentID)
             if (targetCardBoard[0] == null || myCardBoard[0] == null || targetCardBoard[1] != myCardBoard[1]){
                 return null
             }
@@ -114,7 +118,8 @@ module.exports.Minesweeper_Ability = class Minesweeper_Ability extends Ability_C
             card: myCard,
             hitObj: {
                 source: savedData.hitObj.source,
-                value: damageNumber
+                value: damageNumber,
+                tags: ["minesweeper"]
             },
             owner: game.getPlayer(myCard.data(game).owner),
         })

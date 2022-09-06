@@ -79,13 +79,16 @@ class Board extends Sprite {
         // Render the Children
         ctx.fillStyle = "blue";
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        let columns = minColumns;
         // background texture
         let backgroundTexture = await this.getImage("/images/DirtPathLand.png");
         let bot = (SETTINGS.ROWBUFFER + SETTINGS.CARDY);
         let textureLength = bot * 2;
         for (let i = 0; i < this.matrix.length; i++) {
+            let columns = minColumns;
             let length = this.matrix[i].length;
+            if (length > columns) {
+                columns = length;
+            }
             let top = 10 + ((SETTINGS.ROWBUFFER + SETTINGS.CARDY) * (i));
             for (let slide = 0; slide < length / 2; slide++) {
                 ctx.drawImage(backgroundTexture, this.x + (textureLength * slide), top, textureLength, bot);

@@ -474,6 +474,10 @@ module.exports.Game = class Game{
         let row = null;
         let stackAction = null;
         let targetFailures = null;
+        if (!card.hasKeyWord("SWIFT") && this.stack.length > 0){
+            console.log('failed to cast card as it does not have swift and stack exists')
+            return false;
+        }
         switch(card.data(this).type[0]){
             case("Entity"):
                 if (actionData.row == null){

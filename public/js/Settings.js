@@ -1,6 +1,6 @@
 const SETTINGS = {
     //Engine Config
-    FPS: 1,
+    FPS: 30,
     SCREENX: 1500,
     SCREENY: 1500,
     // Board Display

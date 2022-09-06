@@ -239,19 +239,22 @@ class CardSprite extends Sprite{
         // check if I can actually attempt to place something onto the board
         if (this.holder.isHand() && mouse.gameParent.state == "ACTION" && mouse.gameParent.viewData.player.divineConnection >= (this.cardData.cost) && mouse.gameParent.myBoard.targetRow !=null){
             // can play card. make it go on the stack
-            if (this.cardData.targets == null){
-                mouse.gameParent.sendPlayerAction({
-                    type: "ACTION",
-                    data: {
-                        actiontype: "PLAYCARD",
-                        card: this.cardData.id,
-                        row: mouse.gameParent.myBoard.targetRow
-                    }
-                })    
+            if (mouse.gameParent.myStack.list.length > 0 && !this.hasKeyWord("SWIFT")){
+                console.log("Cant play non-swift cards while stack exists.")
             }else{
-                mouse.gameParent.detailOverlay.startTargetingSession(this.cardData,["ACTION","PLAYCARD"])
+                if (this.cardData.targets == null){
+                    mouse.gameParent.sendPlayerAction({
+                        type: "ACTION",
+                        data: {
+                            actiontype: "PLAYCARD",
+                            card: this.cardData.id,
+                            row: mouse.gameParent.myBoard.targetRow
+                        }
+                    })    
+                }else{
+                    mouse.gameParent.detailOverlay.startTargetingSession(this.cardData,["ACTION","PLAYCARD"])
+                }    
             }
-            
         }
         else if (this.holder.isHand() && mouse.gameParent.state == "ACTION"){
             console.log("Card costs too much to play or there is no row")

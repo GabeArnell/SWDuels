@@ -92,7 +92,6 @@ class Board extends Sprite{
         ctx.fillStyle = "blue";
         ctx.fillRect(this.x,this.y,this.width,this.height)
 
-        let columns = minColumns;
         
         // background texture
 
@@ -102,7 +101,11 @@ class Board extends Sprite{
         let textureLength = bot*2;
 
         for (let i = 0; i < this.matrix.length;i++){
+            let columns = minColumns;
             let length = this.matrix[i].length;
+            if (length > columns){
+                columns = length
+            }
             let top = 10+((SETTINGS.ROWBUFFER+SETTINGS.CARDY)*(i))
 
             for (let slide = 0; slide < length/2;slide++){

@@ -23,8 +23,9 @@ class Game{
 
     public selectedCard:CardSprite = null;
 
-
     public inputDebouce:boolean = false;
+
+    public polling:boolean = false; // if we are waiting for server to respond
 
     constructor(startingView){
         this.viewData = startingView;
@@ -58,12 +59,46 @@ class Game{
         this.layoutBoard();
 
         this.state = this.viewData.waiting
+        this.RenderObject.run();
+
         if (this.viewData.priority){
             this.getPriority();
         }else{
             console.log('no priority ig lol')
         }
-        this.RenderObject.run();
+        this.refreshTime();
+    }
+
+    async refreshTime(){
+        let game = this;
+        setInterval(()=>{
+            if (!game.viewData.priority && !game.polling && !game.viewData.prompt){
+                console.log("loading")
+                game.polling = true;
+                fetch("/game",{
+                    method: "POST",
+                    cache: "no-cache",
+                    headers: [["Content-Type","application/json"]],
+                    body: JSON.stringify({
+                        game: this.viewData.id,
+                        player: playerID
+                    })
+                }).then(response=>{
+                    game.polling = false;
+                    response.json().then(json=>{
+                        console.log('got information')
+                        if (json.status == "success"){
+                            console.log('was a success!')
+                            this.resolveResponse(json.view)
+                        }else{
+                            console.log(json)
+                        }
+                    })
+                })
+            }else{
+                console.log("already has to make a choice, no loading")
+            }
+        },2000)
     }
 
     layoutBoard(){

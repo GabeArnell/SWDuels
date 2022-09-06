@@ -54,6 +54,9 @@ module.exports.Robot = class Robot extends Player{
     canSummonCard(){
         for (let card of this.hand){
             if (card.data(this.game).cost <= this.getDivineConnection(this.game) && card.data(this.game).type.includes("Entity")){
+                if (this.game.stack.length > 0 && !card.hasKeyWord("SWIFT")){
+                    continue;
+                }
                 return card;
             }
         }

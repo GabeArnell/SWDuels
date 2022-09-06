@@ -1,5 +1,6 @@
 const {Zone_Card} = require("../zone_card")
 const {Board_Card} = require("../board_card")
+const Swift_AbilityClass = require("../abilities/Swift").Ability;
 
 module.exports.stats = {
     name: "Quell",
@@ -15,7 +16,7 @@ module.exports.stats = {
 module.exports.Zone_Card = class ShatteredSeeker_Zone extends Zone_Card{
     constructor(data={},Board_Card = null){
         super(module.exports.stats,data,module.exports.Board_Card,Board_Card);
-        
+        this.abilities.push(new Swift_AbilityClass(this));
     }
     calcTargetRequirements(){
         let targetList = [

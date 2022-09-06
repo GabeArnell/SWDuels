@@ -14,6 +14,7 @@ class Game {
         this.myPassButton = null;
         this.selectedCard = null;
         this.inputDebouce = false;
+        this.polling = false; // if we are waiting for server to respond
         this.viewData = startingView;
         this.mouse = new Mouse(this);
         let canvasObject = document.getElementById("GameCanvas");
@@ -40,13 +41,47 @@ class Game {
         }, false);
         this.layoutBoard();
         this.state = this.viewData.waiting;
+        this.RenderObject.run();
         if (this.viewData.priority) {
             this.getPriority();
         }
         else {
             console.log('no priority ig lol');
         }
-        this.RenderObject.run();
+        this.refreshTime();
+    }
+    async refreshTime() {
+        let game = this;
+        setInterval(() => {
+            if (!game.viewData.priority && !game.polling && !game.viewData.prompt) {
+                console.log("loading");
+                game.polling = true;
+                fetch("/game", {
+                    method: "POST",
+                    cache: "no-cache",
+                    headers: [["Content-Type", "application/json"]],
+                    body: JSON.stringify({
+                        game: this.viewData.id,
+                        player: playerID
+                    })
+                }).then(response => {
+                    game.polling = false;
+                    response.json().then(json => {
+                        console.log('got information');
+                        if (json.status == "success") {
+                            console.log('was a success!');
+                            this.resolveResponse(json.view);
+                        }
+                        else {
+                            console.log(json);
+                        }
+                    });
+                });
+            }
+            else {
+                console.log("already has to make a choice, no loading");
+            }
+        }, 2000);
     }
     layoutBoard() {
         let BoardObject = new Board({ visible: true, height: SETTINGS.BOARDY, width: SETTINGS.BOARDX, position: PositionReference.topleft });
