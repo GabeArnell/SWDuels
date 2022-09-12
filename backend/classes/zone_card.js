@@ -12,6 +12,8 @@ module.exports.Zone_Card = class Zone_Card{
         this.boardClass = boardClass;
         this.stats = stats;
         this.id = data.id || -1;
+        this.attachedCards = [];
+        this.parentCard = null;
         //console.log('creating zone card',stats,'data',data)
         this.owner = data.owner || null;
         if (boardCard){
@@ -36,7 +38,7 @@ module.exports.Zone_Card = class Zone_Card{
         return [this.stats.type];
     }
     
-    data(){
+    data(game){
         // cost and all other stuff would be calculated here
         //console.log(this)
         let resData = {
@@ -49,6 +51,7 @@ module.exports.Zone_Card = class Zone_Card{
             abilities: [],
             range: this.calcSpellRange(),
             targets: this.calcTargetRequirements(),
+            attachedCards: []
         }
         for (let ability of this.abilities){
             if (ability.isActive(game)){

@@ -22,7 +22,7 @@ class Board extends Sprite{
         // adding 25 to each row, only 5 should be visible
         for (let i = 0; i < 5; i++){
             for (let j = 0; j < maxColumns;j++){
-                let holder = new CardHolder({visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX,inBoard:true, row:i});
+                let holder = new CardHolder({visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX,zone:"Board", row:i});
                 holder.row = i;
                 holder.column = j;
                 
@@ -85,6 +85,35 @@ class Board extends Sprite{
         }
     }
 
+    // checks if there are any guardians that restrict attacks
+    checkAttackGuardians(card:CardSprite,row){
+        let guardians = [];
+        for (let r =0; r < this.matrix.length;r++){
+            for (let holder of this.matrix[r]){
+                if (holder.heldCard && holder.heldCard.cardData && holder.heldCard.cardData.owner != card.cardData.owner){
+                    if (holder.heldCard.hasKeyWord("GUARDIAN") && Math.abs(row-r) <= card.cardData.attackRange ){
+                        guardians.push(holder.heldCard.cardData.id)
+                    }
+                }
+            }
+        }
+        return guardians
+    }
+    checkMoveGuardian(card:CardSprite,row){
+        let guardians = [];
+        for (let r =0; r < this.matrix.length;r++){
+            for (let holder of this.matrix[r]){
+                if (holder.heldCard && holder.heldCard.cardData && holder.heldCard.cardData.owner != card.cardData.owner){
+                    if (holder.heldCard.hasKeyWord("GUARDIAN") && row == r ){
+                        return true;
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+
     async render(ctx,mouse:Mouse,renderZ:number){
         this.renderZ=renderZ;
 
@@ -99,7 +128,6 @@ class Board extends Sprite{
         let backgroundTexture = await this.getImage("/images/DirtPathLand.png")
         let bot = (SETTINGS.ROWBUFFER+SETTINGS.CARDY)
         let textureLength = bot*2;
-
         for (let i = 0; i < this.matrix.length;i++){
             let columns = minColumns;
             let length = this.matrix[i].length;
@@ -111,6 +139,15 @@ class Board extends Sprite{
             for (let slide = 0; slide < length/2;slide++){
                 ctx.drawImage(backgroundTexture,this.x+(textureLength*slide),top,textureLength,bot)
             }
+        }
+
+        for (let i = 0; i < this.matrix.length;i++){
+            let columns = minColumns;
+            let length = this.matrix[i].length;
+            if (length > columns){
+                columns = length
+            }
+
             if (this.targetRow != null && this.targetRow == i){
                 ctx.fillStyle = "#7EE9FC";
                 let top = 10+((SETTINGS.ROWBUFFER+SETTINGS.CARDY)*(this.targetRow))
@@ -124,6 +161,8 @@ class Board extends Sprite{
                 }
             }
         }
+
+        
         if (mouse.gameParent.detailOverlay.possibleTargetRows.length > 0){
             for (let but of this.rowSelectButtons){
                 renderZ = await but.render(ctx,mouse,renderZ);

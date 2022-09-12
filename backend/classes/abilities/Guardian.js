@@ -1,12 +1,11 @@
 const {Ability_Class} = require("../ability")
 
-
-module.exports.Ability = class Agile_Ability extends Ability_Class{
+module.exports.Ability = class Guardian_Ability extends Ability_Class{
     keyword = null;
     constructor(cardParent,copy=null){
         super()
 
-        this.keyword = "SURGE";
+        this.keyword = "GUARDIAN";
         this.class = module.exports.Ability;
         this.parentID = cardParent.id;
         if (copy){
@@ -23,8 +22,8 @@ module.exports.Ability = class Agile_Ability extends Ability_Class{
     data(){
         // returning the information of the event
         let resData = {
-            text: "Surge: This entity enters the battlefield Ready instead of Exhausted.",
-            image: "surge",
+            text: "Guardian: Attacks must target this if able to. Enemy entities can not move out of a shared zone.",
+            image: "guardian",
             keyword: this.keyword,
             keywordAbility: true,
         }

@@ -32,6 +32,7 @@ class DetailOverLay extends Sprite{
             actionData: actionData,
             row: targetRow
         }
+        // if it is a prompt the action data[0] is "PROMPT" and the [1] is the callback
         this.checkVisibility()
         this.calcPossibleTargets(this.gameParent.getAllCards(),this.targetingSession.targets[this.targetingSession.index])
     }
@@ -60,6 +61,13 @@ class DetailOverLay extends Sprite{
             this.gameParent.sendPlayerAction(sendData)
             return;
         }
+        if (session.actionData[0] == "PROMPT" ){
+            let callback = session.actionData[1]
+            callback(this.targetingSession.confirmedTargets)
+            this.quitTargetingSession();
+            return;
+        }
+
         if (this.gameParent.state == "CLIENT AGILE"){
             if (canceled){
                 this.quitTargetingSession();
@@ -175,9 +183,15 @@ class DetailOverLay extends Sprite{
                 for (let key in targetRequirement.requirements){
                     switch(key){
                         case("type"):
-                            if (!card.cardData.type.includes(targetRequirement.requirements[key])){
-                                passes = false;
+                            let canTargetType = false;
+                            for (let tarType of targetRequirement.requirements[key]){
+                                if (card.cardData.type.includes(tarType)){
+                                    canTargetType = true;
+                                }
+                            }
+                            if (!canTargetType){
                                 console.log("denied due to type")
+                                passes = false;
                             }
                             break;
                         case("unique"):
@@ -199,22 +213,58 @@ class DetailOverLay extends Sprite{
                         case("attackable"):
                             if (card.holder.isBoard() && (card.cardData.type.includes("Entity") || card.cardData.type.includes("Player")) && card.cardData.owner != this.targetingSession.card.owner && Math.abs(card.holder.row - targetRequirement.originRow) <= this.targetingSession.card.attackRange){
                                 //correct!
+                                let guardians = this.gameParent.myBoard.checkAttackGuardians(this.targetingSession.card,targetRequirement.originRow)
+                                if (guardians.length > 0 && !guardians.includes(card.cardData.id)){
+                                    passes = false;
+                                    console.log('cant target due to guardian')
+                                }
                             }else{
                                 passes = false;
                                 console.log("denied due to not being attackable", card.cardData.owner, this.targetingSession.card.owner)
                                 console.log(Math.abs(card.holder.row - targetRequirement.originRow) > this.targetingSession.card.attackRange, card.holder.row,targetRequirement.originRow)
                             }
                             break;
+                        
                         case("range"):
                             if (card.holder.isBoard() && Math.abs(card.holder.row - this.gameParent.viewData.player.currentRow) > targetRequirement.requirements[key]){
                                 passes = false;
                                 console.log("denied due to range")
     
                             }
+                            break;
+                        case("not"):
+                            for (let notKey in targetRequirement.requirements[key]){
+                                console.log(notKey)
+                                switch(notKey){
+                                    case("name"):
+                                        if (targetRequirement.requirements[key][notKey].includes(card.cardData.name)){
+                                            if (card.holder.isBoard()){
+                                                console.log("rejected",card.cardData, "doesnt belong in ",targetRequirement.requirements[key][notKey] )
+                                            }else{
+                                                console.log('isnt in board')
+                                            }
+                                            passes = false;
+                                        }
+                                }
+                            }
+                            break;
+                        case("inRow"):
+                            console.log(targetRequirement.requirements[key])
+                            if (card.holder.isBoard() && targetRequirement.requirements[key].includes(card.holder.row)){
+                                // passes
+                            }else{
+                                if (card.holder.isBoard()){
+                                    console.log('rejected due to not being in right row')
+                                }
+                                passes = false;
+                            }
+                            break;
+                        
                     }
                 }
     
                 if (passes){
+                    console.log('passes')
                     this.possibleTargets.push(card.cardData.id);
                 }
             }
@@ -289,6 +339,14 @@ class DetailOverLay extends Sprite{
             let texture = "/Cards/hand/"+this.viewingCard.imageName+".png"
             var myImg = await this.getImage(texture);
             ctx.drawImage(myImg,this.x+50,this.y+50,SETTINGS.CARDX*2,SETTINGS.CARDY*2);
+            for (let i = 0; i < this.viewingCard.attachedCards.length;i++){
+                let attachedCard = this.viewingCard.attachedCards[i];
+                let newImage = "/Cards/hand/"+attachedCard.imageName+".png";
+                var loadedImg = await this.getImage(newImage);
+                ctx.drawImage(loadedImg,this.x+50 + (SETTINGS.CARDX*2 +50),this.y+50,SETTINGS.CARDX*2,SETTINGS.CARDY*2);
+    
+            }
+
             this.closeButton.visible = true;
             await this.closeButton.render(ctx,mouse,renderZ)
         }
@@ -321,12 +379,11 @@ class DetailOverLay extends Sprite{
         }
         return renderZ+1
     }
+
+
     spriteChildren() {
         return [this.closeButton,this.cancelTargetButton]
     }
-
-
-
 }
 
 class CloseCardDisplayButton extends Sprite{

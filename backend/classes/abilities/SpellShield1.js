@@ -16,7 +16,10 @@ module.exports.Ability = class SpellShield1_Agility extends Ability_Class{
 
     
     trigger(stackAction,stackStatus,owner,game){
-        if (stackAction.type == "EVOCATION"  && this.parentID == stackAction.targets[0].id && stackAction.card.data(game).owner != stackAction.targets[0].data(game).owner  && stackStatus == "Popping"){
+        if (stackAction.type != "EVOCATION" && stackAction.type != "HEX"){
+            return null;
+        }
+        if (this.parentID == stackAction.targets[0].id && stackAction.card.data(game).owner != stackAction.targets[0].data(game).owner  && stackStatus == "Popping"){
             if (this.triggeredStackActions.includes(stackAction.id)){
                 return null;
             }
@@ -32,10 +35,11 @@ module.exports.Ability = class SpellShield1_Agility extends Ability_Class{
         console.log('setting up prompt');
         game.waiting = "PROMPT"
         game.setPrompt(
-            `Pay spellshield?`,
-            ['Yes','No'],
-            savedData.stackAction.owner.id,
-            savedData // saved data
+            {text:`Pay spellshield?`,
+            responses:['Yes','No'],
+            playerID: savedData.stackAction.owner.id,
+            savedData: savedData // saved data
+        }
         )
         return true; // returns true if the game actually needs to pause for the prompt. Sometimes it doesnt if the prompt is no longer necessary
     }
@@ -69,7 +73,8 @@ module.exports.Ability = class SpellShield1_Agility extends Ability_Class{
         let resData = {
             text: "Spellshield "+this.energyTax+": Pay "+this.energyTax+" Or Dispell",
             image: "spellshield",
-            keyword: this.keyword
+            keyword: this.keyword,
+            keywordAbility: true,
         }
         return resData;
     }

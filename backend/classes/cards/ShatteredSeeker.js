@@ -49,7 +49,6 @@ module.exports.Broken_Seeker_Ability = class Broken_Seeker_Ability extends Abili
             console.log(stackAction.type,' !triggers! this event',stackStatus,stackAction.card.id,this.parentID )
             return {stackAction: stackAction, player:owner};
         }
-        console.log(stackAction.type,'does not trigger this event',stackStatus,stackAction.card.id,this.parentID )
         return null;
 }
     execute(savedData,game){

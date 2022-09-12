@@ -96,7 +96,7 @@ class Game{
                     })
                 })
             }else{
-                console.log("already has to make a choice, no loading")
+                //console.log("already has to make a choice, no loading")
             }
         },2000)
     }
@@ -125,7 +125,15 @@ class Game{
         console.log(this.viewData)
         for (let cardData of this.viewData.player.hand){
             let cardSprite = new CardSprite(cardData,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
-            HandObject.addCard(cardSprite)
+            HandObject.addHandCard(cardSprite)
+        }
+        for (let cardData of this.viewData.player.grave){
+            let cardSprite = new CardSprite(cardData,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
+            HandObject.addGraveCard(cardSprite)
+        }
+        for (let cardData of this.viewData.player.deck){
+            let cardSprite = new CardSprite(cardData,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
+            HandObject.addDeckCard(cardSprite)
         }
 
         // Set up Prompter
@@ -167,6 +175,7 @@ class Game{
                 })
                 break;
             case("ACTION"):
+                console.log('pass button enabled!')
                 this.myPassButton.visible = true;
                 this.myPassButton.clicked = false;
                 this.state = "ACTION"
@@ -174,10 +183,26 @@ class Game{
             case("PROMPT"):
                 let promptData = this.viewData.prompt;
                 console.log('running prompt question');
-                this.myPrompt.askQuestion({
-                    prompt: promptData.text,
-                    responses: promptData.responses,
-                    callback: (response:String)=>{
+                if (promptData.targets == null){
+                    this.myPrompt.askQuestion({
+                        prompt: promptData.text,
+                        responses: promptData.responses,
+                        callback: (response:String)=>{
+                            if (!clicked && this.viewData.waiting == "PROMPT"){
+                                clicked=true
+                                this.sendPlayerAction({
+                                    type: "PROMPT",
+                                    data:{
+                                        actiontype: "PROMPT",
+                                        data: response
+                                    }
+                                })
+                            }
+                        }
+                    })    
+                }else{
+                    console.log("asking for prompt")
+                    this.detailOverlay.startTargetingSession(promptData.card,["PROMPT",(response)=>{
                         if (!clicked && this.viewData.waiting == "PROMPT"){
                             clicked=true
                             this.sendPlayerAction({
@@ -188,13 +213,12 @@ class Game{
                                 }
                             })
                         }
-                    }
-                })
-
+                    }],null,promptData.targets)
+                }
                 break;
         }
     }
-
+    
     sendPlayerAction(data){
         if (this.inputDebouce){
             return;
@@ -229,8 +253,23 @@ class Game{
         this.myHand.clearHand();
         for (let cardData of newView.player.hand){
             let cardSprite = new CardSprite(cardData,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
-            this.myHand.addCard(cardSprite)
+            this.myHand.addHandCard(cardSprite)
         }
+        // change grave
+        this.myHand.clearGrave();
+        for (let cardData of newView.player.grave){
+            let cardSprite = new CardSprite(cardData,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
+            this.myHand.addGraveCard(cardSprite)
+        }
+
+        // change deck
+        this.myHand.clearDeck();
+        for (let cardData of newView.player.deck){
+            let cardSprite = new CardSprite(cardData,{visible:true,height:SETTINGS.CARDY,width:SETTINGS.CARDX})
+            this.myHand.addDeckCard(cardSprite)
+        }
+        
+
 
         // change board
         this.myBoard.clearBoard();
@@ -272,7 +311,7 @@ class Game{
                 list.push(cardHolder.heldCard)
             }
         }
-        for (let cardHolder of this.myHand.spriteChildren()){
+        for (let cardHolder of this.myHand.cardLists()){
             if (cardHolder.heldCard){
                 list.push(cardHolder.heldCard)
             }

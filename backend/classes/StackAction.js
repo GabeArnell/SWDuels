@@ -6,7 +6,7 @@ module.exports.StackAction = class StackAction{
         this.id = game.nextStackActionID++;
         this.game = game;
         this.type = build.type;
-        this.owner = build.owner;
+        this.owner = build.owner || null;
         this.chained = build.chained || false; // if a stack action is chained to the stack action on top of it it completes immediatly without opportunities for events or swift crap
         this.preresolvePrompt = null;
         this.invisible = build.invisible || false;
@@ -27,6 +27,7 @@ module.exports.StackAction = class StackAction{
                 this.card = build.card;
                 this.hitObj = build.hitObj;
                 this.eventProc = build.eventProc | null;
+            case("HEX"):
             case("EVOCATION"): 
                 this.card = build.card;
                 this.targets = build.targets;
@@ -41,6 +42,9 @@ module.exports.StackAction = class StackAction{
                 if (this.ability.preresolvePrompt){
                     this.preresolvePrompt = this.ability.preresolvePrompt
                 }
+                if (this.ability.prepushPrompt){
+                    this.prepushPrompt = this.ability.prepushPrompt
+                }
                 break;
             case("DEATH"):
                 // Death is a triggered event but does not go on stack or actually get resolved
@@ -48,6 +52,9 @@ module.exports.StackAction = class StackAction{
             default:
                 if (build.card){
                     this.card = build.card
+                }
+                if (build.targetCard){
+                    this.targetCard = build.targetCard
                 }
         }
     }
@@ -66,11 +73,15 @@ module.exports.StackAction = class StackAction{
             case("DAMAGE"):
                 game.resolveDamage(this,promptResponse)
                 break;
+            case("HEX"):
             case("EVOCATION"):
                 game.resolveSpell(this,promptResponse)
                 break;
             case("EVENT"):
                 game.resolveEvent(this,promptResponse);
+                break;
+            case("ENDTURN"):
+                game.nextTurn();
                 break;
         }
     }
@@ -102,6 +113,7 @@ module.exports.StackAction = class StackAction{
                     value: this.hitObj.value
                 };
                 break;
+            case("HEX"):
             case("EVOCATION"):
                 res.card = this.card.data(this.game);
                 res.targets = [];
@@ -121,7 +133,7 @@ module.exports.StackAction = class StackAction{
                 break;
                 
         }
-        if (askingPlayerID != this.owner.id){
+        if (!this.owner || askingPlayerID != this.owner.id){
             res.owner = false;
         }
         return res;

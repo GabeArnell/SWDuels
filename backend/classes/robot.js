@@ -8,7 +8,9 @@ module.exports.Robot = class Robot extends Player{
     }
 
     decideAction(req,res){
+        console.log('getting robot action for',this.game.waiting)
         switch(this.game.waiting){
+            
             case("MULLIGAN"):
                 // dont mulligan
                 this.game.playerAction(req,res,{
@@ -55,6 +57,9 @@ module.exports.Robot = class Robot extends Player{
         for (let card of this.hand){
             if (card.data(this.game).cost <= this.getDivineConnection(this.game) && card.data(this.game).type.includes("Entity")){
                 if (this.game.stack.length > 0 && !card.hasKeyWord("SWIFT")){
+                    continue;
+                }
+                if (this.game.actionUsed &&  !card.hasKeyWord("SWIFT")){
                     continue;
                 }
                 return card;

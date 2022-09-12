@@ -40,10 +40,20 @@ class CardSprite extends Sprite{
         let object=this;
         var myImg = await this.getImage(this.texture);
         
-        if (this.selected){
-            ctx.fillStyle = "orange"
-            ctx.fillRect(this.x-5,this.y-5,this.width+10,this.height+10)
-        }            
+        if (this.cardData.owner != mouse.gameParent.viewData.player.name){
+            let boarderImg = await this.getImage(SETTINGS.ENEMY_CARD_BORDER);
+            ctx.drawImage(boarderImg,this.x+(this.width/2)-(SETTINGS.CARD_BOARDER_SIZE/2),this.y+(this.height/2)-(SETTINGS.CARD_BOARDER_SIZE/2),SETTINGS.CARD_BOARDER_SIZE,SETTINGS.CARD_BOARDER_SIZE )
+        }else {
+            if (this.selected){
+                let boarderImg = await this.getImage(SETTINGS.SELECTED_CARD_BORDER);
+                ctx.drawImage(boarderImg,this.x+(this.width/2)-(SETTINGS.CARD_BOARDER_SIZE/2),this.y+(this.height/2)-(SETTINGS.CARD_BOARDER_SIZE/2),SETTINGS.CARD_BOARDER_SIZE,SETTINGS.CARD_BOARDER_SIZE )
+            }
+            else{
+                let boarderImg = await this.getImage(SETTINGS.CARD_BORDER);
+                ctx.drawImage(boarderImg,this.x+(this.width/2)-(SETTINGS.CARD_BOARDER_SIZE/2),this.y+(this.height/2)-(SETTINGS.CARD_BOARDER_SIZE/2),SETTINGS.CARD_BOARDER_SIZE,SETTINGS.CARD_BOARDER_SIZE )
+            }    
+        }
+
         
         this.drawImage(ctx,myImg);
         if (this.holder && this.cardData.exhausted && this.holder.isBoard()){
@@ -92,22 +102,37 @@ class CardSprite extends Sprite{
                 }
             }
             
-            let fangs = await this.getImage(SETTINGS.ATTACK_TEXTURE);
-            ctx.drawImage(fangs,this.x-10,this.y+this.height-30,40,40)
-
-            let stamp = await this.getImage(SETTINGS.HEALTH_TEXTURE);
-            ctx.drawImage(stamp,this.x+this.width-30,this.y+this.height-30,40,40)
-            
-            ctx.font = "bold 30px Arial"
-            ctx.fillStyle = "white";
-            ctx.strokeStyle = "black";
-            ctx.textAlign = "center";
-            ctx.fillText(this.cardData.health,this.x+this.width-10,this.y+this.height-2)
-            ctx.strokeText(this.cardData.health,this.x+this.width-10,this.y+this.height-2)
-
-            ctx.fillText(this.cardData.attack,this.x+10,this.y+this.height-2)
-            ctx.strokeText(this.cardData.attack,this.x+10,this.y+this.height-2)
-
+            if (this.cardData.type.includes("Player") || this.cardData.type.includes("Entity")){
+                let fangs = await this.getImage(SETTINGS.ATTACK_TEXTURE);
+                ctx.drawImage(fangs,this.x-10,this.y+this.height-30,40,40)
+                
+                let stamp = await this.getImage(SETTINGS.HEALTH_TEXTURE);
+                ctx.drawImage(stamp,this.x+this.width-30,this.y+this.height-30,40,40)
+                
+                ctx.font = "bold 30px Arial"
+                ctx.fillStyle = "white";
+                ctx.strokeStyle = "black";
+                ctx.textAlign = "center";
+                ctx.fillText(this.cardData.health,this.x+this.width-10,this.y+this.height-2)
+                ctx.strokeText(this.cardData.health,this.x+this.width-10,this.y+this.height-2)
+    
+                ctx.fillText(this.cardData.attack,this.x+10,this.y+this.height-2)
+                ctx.strokeText(this.cardData.attack,this.x+10,this.y+this.height-2)
+    
+                if (this.cardData.type.includes("Player")){
+                    let energy = 0;
+                    if (this.cardData.name == mouse.gameParent.viewData.player.name){
+                        energy = mouse.gameParent.viewData.player.divineConnection
+                    }else{
+                        energy = mouse.gameParent.viewData.otherPlayers[0].divineConnection
+                    }
+                    let energyIcon = await this.getImage(SETTINGS.ENERGY_TEXTURE);
+                    ctx.drawImage(energyIcon,this.x-10,this.y-10,40,40)
+                    ctx.fillText(energy,this.x+10,this.y+20)
+                    ctx.strokeText(energy,this.x+10,this.y+20)    
+                    
+                }    
+            }
         }
 
         // checking if it is being hovered over for fighting
@@ -115,21 +140,39 @@ class CardSprite extends Sprite{
             if (!mouse.gameParent.selectedCard.cardData.exhausted && !(mouse.gameParent.selectedCard && mouse.gameParent.selectedCard.cardData.owner == this.cardData.owner)){ // ensures you can not attack yourself
                 // check range here
                 if (Math.abs(this.holder.row - mouse.gameParent.selectedCard.holder.row) <= mouse.gameParent.selectedCard.cardData.attackRange){
-                    let texture = await this.getImage(SETTINGS.FIGHT_TEXTURE);
-                    this.drawImage(ctx,texture);    
+                    // check if guardian(s) around
+                    let guardians = mouse.gameParent.myBoard.checkAttackGuardians(mouse.gameParent.selectedCard,mouse.gameParent.selectedCard.holder.row);
+                    if (guardians.length > 0 && !guardians.includes(this.cardData.id)){
+                        // Render blocked texture ig
+
+                    }else{
+                        let texture = await this.getImage(SETTINGS.FIGHT_TEXTURE);
+                        this.drawImage(ctx,texture);    
+                    }
                 }
             }
         }
+        
+        if (this.holder && this.holder.isBoard() && this.cardData.attachedCards.length > 0){
+            let attachedOverlay = await this.getImage(SETTINGS.ATTACHED_CARD_LAYER);
+            ctx.drawImage(attachedOverlay,this.x+(this.width/2)-(SETTINGS.CARD_BOARDER_SIZE/2),this.y+(this.height/2)-(SETTINGS.CARD_BOARDER_SIZE/2),SETTINGS.CARD_BOARDER_SIZE,SETTINGS.CARD_BOARDER_SIZE )
+        }
+        
+        if (this.holder && this.holder.isBoard() && this.cardData.kidnappedCards.length > 0){
+            let kidnappingOverlay = await this.getImage(SETTINGS.KIDNAPPING_CARD_LAYER);
+            ctx.drawImage(kidnappingOverlay,this.x+(this.width/2)-(SETTINGS.CARD_BOARDER_SIZE/2),this.y+(this.height/2)-(SETTINGS.CARD_BOARDER_SIZE/2),SETTINGS.CARD_BOARDER_SIZE,SETTINGS.CARD_BOARDER_SIZE )
+        }
+
 
         // checking if it is a possible selection
         if (mouse.gameParent.detailOverlay.targetingSession && mouse.gameParent.detailOverlay.possibleTargets.includes(this.cardData.id)){
             let texture;
             if (this.hovering){
-                texture = await this.getImage(SETTINGS.CARD_HOVER_SELECT_FRAME);//300 by 270
+                texture = await this.getImage(SETTINGS.SELECTED_CARD_BORDER);
             }else{
-                texture = await this.getImage(SETTINGS.CARD_SELECT_FRAME);//300 by 270
+                texture = await this.getImage(SETTINGS.HIGHLIGHT_CARD_BORDER);
             }
-            ctx.drawImage(texture,this.x+this.width/2-100,this.y+this.height/2-90,200,180)
+            ctx.drawImage(texture,this.x+this.width/2-(SETTINGS.CARD_BOARDER_SIZE/2),this.y+this.height/2-(SETTINGS.CARD_BOARDER_SIZE/2),SETTINGS.CARD_BOARDER_SIZE,SETTINGS.CARD_BOARDER_SIZE)
         }
         if (this.holder && this.holder.isBoard()){
             // Name
@@ -166,6 +209,15 @@ class CardSprite extends Sprite{
                 }else if (mouse.gameParent.selectedCard && mouse.gameParent.selectedCard.cardData.owner != this.cardData.owner){
                     // checking card range
                     if (!mouse.gameParent.selectedCard.cardData.exhausted && Math.abs(this.holder.row - mouse.gameParent.selectedCard.holder.row) <= mouse.gameParent.selectedCard.cardData.attackRange){
+                        // Checking guardian
+                        let legalAttack = true
+                        let guardians = mouse.gameParent.myBoard.checkAttackGuardians(mouse.gameParent.selectedCard,mouse.gameParent.selectedCard.holder.row);
+                        if (guardians.length > 0 && !guardians.includes(this.cardData.id)){
+                            // Render blocked texture ig
+                            legalAttack = false;
+                        }
+    
+                        
                         // checking stack
                         let clearStack = true;
                         for (let action of mouse.gameParent.myStack.list){
@@ -173,8 +225,10 @@ class CardSprite extends Sprite{
                                 clearStack = false;
                             }
                         }
-                        if (clearStack){
-                            if (mouse.gameParent.selectedCard.hasKeyWord("AGILE")){
+                        // checking if the card could move in case of agile prompting
+                        let canMove = mouse.gameParent.myBoard.checkMoveGuardian(mouse.gameParent.selectedCard,mouse.gameParent.selectedCard.holder.row)
+                        if ((clearStack || mouse.gameParent.selectedCard.hasKeyWord("SWIFTATTACK")) && legalAttack){
+                            if (mouse.gameParent.selectedCard.hasKeyWord("AGILE") && mouse.gameParent.viewData.actionUsed == false && canMove){
                                 let altTargets = [{
                                     text: "Agile: Select a zone to move to after attacking.",
                                     defender: this.cardData.id,
@@ -187,7 +241,7 @@ class CardSprite extends Sprite{
                                 }]
                                 mouse.gameParent.state="CLIENT AGILE" // setting client targetting to 'CLIENT AGILE'
                                 mouse.gameParent.detailOverlay.startTargetingSession(mouse.gameParent.selectedCard.cardData,["ACTION","MOVEENTITY"],0,altTargets)            
-                            }else{
+                            }else if (mouse.gameParent.viewData.actionUsed == false){
                                 mouse.gameParent.sendPlayerAction({
                                     type: "ACTION",
                                     data: {
@@ -200,7 +254,7 @@ class CardSprite extends Sprite{
                         }
                     }
 
-                }else if (!mouse.gameParent.selectedCard){
+                }else if (!mouse.gameParent.selectedCard || mouse.gameParent.selectedCard.cardData.owner == this.cardData.owner){
                     mouse.gameParent.selectedCard = this;
                     this.selected = true    
                 }
@@ -235,10 +289,13 @@ class CardSprite extends Sprite{
     }
 
     endDrag(mouse: Mouse): void {
-
         // check if I can actually attempt to place something onto the board
         if (this.holder.isHand() && mouse.gameParent.state == "ACTION" && mouse.gameParent.viewData.player.divineConnection >= (this.cardData.cost) && mouse.gameParent.myBoard.targetRow !=null){
             // can play card. make it go on the stack
+            if (!this.hasKeyWord("SWIFT") && mouse.gameParent.viewData.actionUsed == true){
+                console.log("Cant move while action has already been used")
+                return;
+            }
             if (mouse.gameParent.myStack.list.length > 0 && !this.hasKeyWord("SWIFT")){
                 console.log("Cant play non-swift cards while stack exists.")
             }else{
@@ -250,7 +307,7 @@ class CardSprite extends Sprite{
                             card: this.cardData.id,
                             row: mouse.gameParent.myBoard.targetRow
                         }
-                    })    
+                    })
                 }else{
                     mouse.gameParent.detailOverlay.startTargetingSession(this.cardData,["ACTION","PLAYCARD"])
                 }    
@@ -264,8 +321,8 @@ class CardSprite extends Sprite{
                 // wants to move to new area
                 // Check if stack exists
                 let stack = mouse.gameParent.viewData.stack;
-                if (!this.hasKeyWord("AGILE")){
-                    console.log('does not have AGILE ig')
+                let movementBlocked = mouse.gameParent.myBoard.checkMoveGuardian(this,this.holder.row);
+                if (!this.hasKeyWord("AGILE") && mouse.gameParent.viewData.actionUsed == false && !movementBlocked){
                     mouse.gameParent.sendPlayerAction({
                         type: "ACTION",
                         data: {
@@ -275,7 +332,7 @@ class CardSprite extends Sprite{
                         }
                     })
                     this.selected = false;
-                }else{
+                }else if (!movementBlocked){
                     // a
                     let altTargets = [{
                         text: "Agile: Select a target to attack.",

@@ -24,7 +24,8 @@ module.exports.Ability = class Agile_Ability extends Ability_Class{
         // returning the information of the event
         let resData = {
             text: "Swift: Does not take an action to use. May be used in response to another action.",
-            keyword: this.keyword
+            keyword: this.keyword,
+            keywordAbility: true,
         }
         return resData;
     }

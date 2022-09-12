@@ -45,11 +45,23 @@ module.exports.Board = class Board {
         let foundRow = null;
         // searching board
         let i = 0;
+        function checkAttachedCards(parentCard){
+            for (let card of parentCard.attachedCards){
+                if (card.id == cardID){
+                    return card;
+                }
+            }
+        }
         for (let row of this.matrix){
             for (let c of row.cards){
                 if (c.data(this.gameParent).id == cardID){
                     card = c;
                     foundRow = i;
+                }
+                let attachmentResult = checkAttachedCards(c);
+                if (attachmentResult != null){
+                    card = attachmentResult;
+                    foundRow = -1;
                 }
             }
             i++;
@@ -63,11 +75,41 @@ module.exports.Board = class Board {
         for (let row of this.matrix){
             for (let c of row.cards){
                 list.push(c)
+                for (let attached of c.attachedCards){
+                    list.push(attached);
+                }
             }
         }
         return list;
     }
 
+
+    // returns all enemy guardians within card's attack range that it must target if it does attack
+    checkAttackGuardian(card,row){
+        let guardians = [];
+        for (let r =0; r < this.matrix.length;r++){
+            for (let targetCheck of this.matrix[r].cards){
+                if (card.data(this.gameParent).owner != targetCheck.data(this.gameParent).owner){
+                    if (targetCheck.hasKeyWord("GUARDIAN") && Math.abs(row-r) <= card.data(this.gameParent).attackRange ){
+                        guardians.push(targetCheck.id)
+                    }
+                }
+            }
+        }
+        return guardians
+    }
+    checkMoveGuardian(card,row){
+        for (let r =0; r < this.matrix.length;r++){
+            for (let targetCheck of this.matrix[r].cards){
+                if (card.data(this.gameParent).owner != targetCheck.data(this.gameParent).owner){
+                    if (targetCheck.hasKeyWord("GUARDIAN") && row == r ){
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     moveCard(card,newRow){
         let game = this.gameParent

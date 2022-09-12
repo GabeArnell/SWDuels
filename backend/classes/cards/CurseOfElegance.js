@@ -3,13 +3,13 @@ const {Board_Card} = require("../board_card")
 const Swift_AbilityClass = require("../abilities/Swift").Ability;
 
 module.exports.stats = {
-    name: "Quell",
-    imageName: "quell",
+    name: "Curse Of Elegance",
+    imageName: "curseofelegance",
     attack: 0,
     health: 0,
     cost: 0,
-    type: "Evocation",
-    spellRange: 3,
+    type: "Hex",
+    spellRange: 1,
     tribes: [],
 }
 
@@ -40,33 +40,29 @@ module.exports.Zone_Card = class ShatteredSeeker_Zone extends Zone_Card{
         let targetList = this.calcTargetRequirements();
         // first target is silenced and has abilities removed from stack if they are there
         if (game.validateSingleTarget(stackAction.owner,targetList[0],stackAction.targets[0].id,stackAction.targets)){
-            console.log(`Quelled ${stackAction.targets[0].data(game).name}`)
-            function abilityFilter(ability){
-                if (ability.isActive(game)){
-                    ability.setDelayTurn(game.turn+1)
-                }
-                return true;
+            let targetCard = game.board.getCard(stackAction.targets[0].id);
+            if (targetCard[0] == null){
+                console.log("Curse of elegance fizzles due to board cant find");
+                return;
             }
-            stackAction.targets[0].abilities = stackAction.targets[0].abilities.filter(abilityFilter)
-            // removing its ability events from stack
-            function stackFilter(testAction){
-                if (testAction.card && testAction.card == stackAction.targets[0] && testAction.ability !=null){
-                    return false;
-                }
-                return true;
-            }
-            game.stack = game.stack.filter(stackFilter);
+            game.attachCardToBoardCard(this,targetCard[0])
         }else{
-            console.log("Quell fizzles ig")
-        }
-        // sending to grave of my owner ig
-        if (stackAction.card){
-            stackAction.owner.sendZoneToGrave(stackAction.card)
+            console.log("Curse of elegance fizzles ig")
         }
     }
 }
 module.exports.Board_Card = class ShatteredSeeker_Board extends Board_Card{
     constructor(Zone_Card){
         super(Zone_Card,module.exports.Zone_Card);
+    }
+
+    getEffect(game,targetCard){
+        let effect = {
+            keyword:"GRANT",
+            attack: -3,
+            health: -3,
+        }
+        
+        return effect;
     }
 }

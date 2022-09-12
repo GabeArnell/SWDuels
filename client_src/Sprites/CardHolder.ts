@@ -11,12 +11,12 @@ class CardHolder extends Sprite{
     public row:number = null;
     public column:number = null;
 
-    private inBoard = null;
+    public zone:string = null;
 
     constructor(config){
         super(config)
         this.draggable = false
-        this.inBoard = config.inBoard || false
+        this.zone = config.zone || "N/A"
         this.row = config.row || 0;
     }
 
@@ -28,16 +28,22 @@ class CardHolder extends Sprite{
     }
 
     isBoard(){
-        return this.inBoard
+        return this.zone == "Board"
     }
     isHand(){
-        return !this.inBoard
+        return this.zone == "Hand"
+    }
+    isGrave(){
+        return this.zone == "Grave"
+    }
+    isDeck(){
+        return this.zone == "Deck"
     }
 
     async render(ctx,mouse:Mouse,renderZ:number){
         let object=this;
 
-
+        /*
         if (this.heldCard != null&& this.heldCard.cardData.owner != mouse.gameParent.viewData.player.name){
             this.drawRectangle(ctx,{
                 color: "#FF0000",
@@ -49,7 +55,7 @@ class CardHolder extends Sprite{
                 width: 3,
             })
         }
-        this.renderZ=renderZ;
+        this.renderZ=renderZ;*/
         
         if (this.heldCard){
             this.heldCard.render(ctx,mouse,renderZ);

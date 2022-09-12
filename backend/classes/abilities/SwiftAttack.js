@@ -6,7 +6,7 @@ module.exports.Ability = class Agile_Ability extends Ability_Class{
     constructor(cardParent,copy=null){
         super()
 
-        this.keyword = "SURGE";
+        this.keyword = "SWIFTATTACK";
         this.class = module.exports.Ability;
         this.parentID = cardParent.id;
         if (copy){
@@ -23,9 +23,9 @@ module.exports.Ability = class Agile_Ability extends Ability_Class{
     data(){
         // returning the information of the event
         let resData = {
-            text: "Surge: This entity enters the battlefield Ready instead of Exhausted.",
-            image: "surge",
+            text: "Swift Attack: Entity can attack as a Swift action.",
             keyword: this.keyword,
+            image: "swiftattack",
             keywordAbility: true,
         }
         return resData;

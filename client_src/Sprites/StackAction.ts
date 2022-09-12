@@ -123,11 +123,19 @@ class StackAction extends Sprite {
                     }
                 }
                 break;
+            case("HEX"):
             case("EVOCATION"):
                 ctx.font = "bold 20px Arial";
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center"
-                infoText = `Evocation: ${this.data.card.name}`
+                if (this.data.type=="HEX"){
+                    infoText = `Hex`
+                }
+                if (this.data.type=="EVOCATION"){
+                    infoText = `Evocation`
+                }
+
+                infoText += `: ${this.data.card.name}`
                 ctx.fillText(infoText,this.x+this.width/2,this.y+this.height/2 );
                 ctx.strokeStyle = "black";
                 ctx.strokeText(infoText,this.x+this.width/2,this.y+this.height/2 );
@@ -184,6 +192,23 @@ class StackAction extends Sprite {
                     }
                 }
                 break;
+            case("ENDTURN"):
+                ctx.font = "bold 20px Arial";
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center"
+                ctx.fillText("End Turn",this.x+this.width/2,this.y+this.height/2 );
+                ctx.strokeStyle = "black";
+                ctx.strokeText("End Turn",this.x+this.width/2,this.y+this.height/2 );
+                break;
+            case("NEWTURN"):
+                ctx.font = "bold 20px Arial";
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center"
+                ctx.fillText("New Turn",this.x+this.width/2,this.y+this.height/2 );
+                ctx.strokeStyle = "black";
+                ctx.strokeText("New Turn",this.x+this.width/2,this.y+this.height/2 );
+                break;
+
 
         }
 

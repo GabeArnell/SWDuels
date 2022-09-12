@@ -6,8 +6,9 @@ This manages a player entity, their zones of control (hand/deck/grave/banish) as
 const figmentModule = require("./cards/Figment")
 const gnomeModule = require("./cards/TwinsoulGnome")
 const quellModule = require("./cards/Quell")
-const Minesweeper_Module = require("./cards/Minesweeper")
-
+const factoryModule = require("./cards/FactoryGate")
+const villenModule = require("./cards/Villen")
+const undefinedModule = require("./cards/Undefined")
 
 const player_cardModule = require("./cards/Player_Card")
 const {zoneCardMap,boardCardMap} = require("../cardcontroller")
@@ -29,19 +30,19 @@ module.exports.Player = class Player{
         this.game = game;
         this.name = name;
         this.startingRow = startingRow;
-
+        
         this.spentDivineConnection=0;
         
         // making the deck
         for (let i = 0; i < 10; i++){
             let card = null;
-            if (Math.random() > .5 || this.name=='Robot1'){
-                card = new figmentModule.Zone_Card({
+            if (Math.random() > .5 && !this.name.includes("Robot")){
+                card = new undefinedModule.Zone_Card({
                     id: this.game.nextCardID++,
                     owner: this
                 });
             }else{
-                card = new Minesweeper_Module.Zone_Card({
+                card = new villenModule.Zone_Card({
                     id: this.game.nextCardID++,
                     owner: this
                 });
@@ -65,7 +66,7 @@ module.exports.Player = class Player{
     }
 
     data(game){
-        console.log('getting player data', this.name)
+        //console.log('getting player data', this.name)
         let resData = {
             hand: [],
             deck: [], // note that this should be ordered
@@ -83,6 +84,7 @@ module.exports.Player = class Player{
         for (let card of this.grave){
             resData.grave.push(card.data(game))
         }
+
         return(resData)
     }
 
@@ -118,7 +120,11 @@ module.exports.Player = class Player{
     }
 
     getDivineConnection(game){
-        return game.turn-this.spentDivineConnection;
+        let turnCount = game.turn;
+        if (turnCount > 10){
+            turnCount = 10;
+        }
+        return turnCount-this.spentDivineConnection;
     }
 
     getAllCards(){

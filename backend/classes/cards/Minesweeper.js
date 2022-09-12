@@ -83,12 +83,12 @@ module.exports.Minesweeper_Ability = class Minesweeper_Ability extends Ability_C
         let myOwner = game.getPlayer(myCard.data(game).owner);
         console.log('setting up minesweeper prompt');
         game.waiting = "PROMPT"
-        game.setPrompt(
-            `Redirect damage to minesweeper?`,
-            [0,savedData.hitObj.value],
-            myOwner.id,
-            savedData // saved data
-        )
+        game.setPrompt({
+            text:`Redirect damage to minesweeper?`,
+            responses:[0,savedData.hitObj.value],
+            playerID:myOwner.id,
+            savedData:savedData // saved data
+        })
         return true; // returns true if the game actually needs to pause for the prompt. Sometimes it doesnt if the prompt is no longer necessary
     }
     execute(savedData,game,response){

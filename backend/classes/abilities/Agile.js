@@ -24,7 +24,9 @@ module.exports.Ability = class Agile_Ability extends Ability_Class{
         let resData = {
             text: "Agile: Can move and attack in the same action.",
             image: "agile",
-            keyword: this.keyword
+            keyword: this.keyword,
+            keywordAbility: true,
+            
         }
         return resData;
     }
